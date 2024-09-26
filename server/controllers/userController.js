@@ -1,33 +1,63 @@
 const User = require('../models/user.model');
+const jwt = require('jsonwebtoken');
+const bcrypt = require('bcryptjs');
 
 module.exports = {
-    getUsers,
-    createUser,
-    // Add other functions as needed
+  register,
+  login,
+  getMe
+};
+
+async function register(req, res) {
+  try {
+    const { username, email, password, displayName } = req.body;
+    const user = new User({ username, email, password, displayName });
+    await user.save();
+    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET);
+    res.status(201).json({ 
+      user: { 
+        id: user._id, 
+        username: user.username, 
+        email: user.email, 
+        displayName: user.displayName 
+      }, 
+      token 
+    });
+  } catch (error) {
+    res.status(400).json({ message: 'Error registering user', error: error.message });
+  }
 }
 
-async function getUsers(req, res) {
-    try {
-        const users = await User.find();
-        res.json(users);
-    } catch (error) {
-        res.status(400).json('Error: ' + error);
+async function login(req, res) {
+  try {
+    const { email, password } = req.body;
+    const user = await User.findOne({ email });
+    if (!user || !(await bcrypt.compare(password, user.password))) {
+      return res.status(401).json({ message: 'Invalid credentials' });
     }
+    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET);
+    res.json({ 
+      user: { 
+        id: user._id, 
+        username: user.username, 
+        email: user.email, 
+        displayName: user.displayName 
+      }, 
+      token 
+    });
+  } catch (error) {
+    res.status(400).json({ message: 'Error logging in', error: error.message });
+  }
 }
 
-async function createUser(req, res) {
-    try {
-        const newUser = await User.create(req.body);
-        res.json('User added!');
-    } catch (error) {
-        console.log(error);
-        if (error.code === 11000) { // MongoDB duplicate key error
-            const field = Object.keys(error.keyPattern)[0];
-            res.status(400).json({ error: `${field.charAt(0).toUpperCase() + field.slice(1)} already exists.` });
-        } else {
-            res.status(500).json({ error: 'Internal server error' });
-        }
+async function getMe(req, res) {
+  try {
+    const user = await User.findById(req.user.userId).select('-password');
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
     }
+    res.json(user);
+  } catch (error) {
+    res.status(400).json({ message: 'Error fetching user data', error: error.message });
+  }
 }
-
-// Add other functions as needed

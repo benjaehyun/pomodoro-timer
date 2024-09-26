@@ -1,12 +1,10 @@
-const router = require('express').Router();
-const usersCtrl = require('../controllers/userController');
+const express = require('express');
+const router = express.Router();
+const userCtrl = require('../controllers/userController');
+const auth = require('../middleware/auth');
 
-// GET /api/users
-router.get('/', usersCtrl.getUsers);
-
-// POST /api/users (create a new user)
-router.post('/', usersCtrl.createUser);
-
-// Add other routes as needed
+router.post('/register', userCtrl.register);
+router.post('/login', userCtrl.login);
+router.get('/me', auth, userCtrl.getMe);
 
 module.exports = router;

@@ -8,6 +8,7 @@ import TimerControls from './TimerControls';
 import DraggableCycleList from './DraggableCycleList';
 import CycleForm from './CycleForm';
 import { sendNotification } from '../utils/notifications';
+import ConfigurationSelector from './ConfigurationSelector';
 
 const PomodoroTimer = () => {
   const dispatch = useDispatch();
@@ -49,6 +50,7 @@ const PomodoroTimer = () => {
 
   return (
     <Box sx={{ textAlign: 'center', mt: 4, position: 'relative', minHeight: '100vh' }}>
+      <ConfigurationSelector />
       {cycles.length > 0 ? (
         <>
           <Typography variant="h4" gutterBottom>
@@ -66,7 +68,7 @@ const PomodoroTimer = () => {
         </>
       ) : (
         <Typography variant="h5" gutterBottom>
-          No cycles available. Add a new cycle to start the timer.
+          No cycles available. Select a configuration or add a new cycle to start the timer.
         </Typography>
       )}
       <Box sx={{ mt: 4, mx: 2 }}>
