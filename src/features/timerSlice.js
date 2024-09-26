@@ -2,10 +2,12 @@ import { createSlice } from '@reduxjs/toolkit';
 
 const initialState = {
   isRunning: false,
-  timeRemaining: 25 * 60, // 25 minutes in seconds
-  currentPhase: 'work', // 'work' or 'break'
-  workDuration: 25 * 60,
-  breakDuration: 5 * 60,
+  timeRemaining: 25 * 60,
+  cycles: [
+    { id: 'default-1', label: 'Focus', duration: 25 * 60, note: 'Time to concentrate!' },
+    { id: 'default-2', label: 'Break', duration: 5 * 60, note: 'Take a short break.' },
+  ],
+  currentCycleIndex: 0,
 };
 
 const timerSlice = createSlice({
@@ -20,27 +22,37 @@ const timerSlice = createSlice({
     },
     resetTimer: (state) => {
       state.isRunning = false;
-      state.timeRemaining = state.currentPhase === 'work' ? state.workDuration : state.breakDuration;
+      state.timeRemaining = state.cycles[state.currentCycleIndex].duration;
     },
     tickTimer: (state) => {
       if (state.timeRemaining > 0) {
         state.timeRemaining -= 1;
       } else {
-        state.currentPhase = state.currentPhase === 'work' ? 'break' : 'work';
-        state.timeRemaining = state.currentPhase === 'work' ? state.workDuration : state.breakDuration;
+        state.currentCycleIndex = (state.currentCycleIndex + 1) % state.cycles.length;
+        state.timeRemaining = state.cycles[state.currentCycleIndex].duration;
       }
     },
-    setWorkDuration: (state, action) => {
-      state.workDuration = action.payload * 60;
-      if (state.currentPhase === 'work') {
-        state.timeRemaining = state.workDuration;
+    addCycle: (state, action) => {
+      state.cycles.push(action.payload);
+    },
+    updateCycle: (state, action) => {
+      const index = state.cycles.findIndex(cycle => cycle.id === action.payload.id);
+      if (index !== -1) {
+        state.cycles[index] = action.payload;
       }
     },
-    setBreakDuration: (state, action) => {
-      state.breakDuration = action.payload * 60;
-      if (state.currentPhase === 'break') {
-        state.timeRemaining = state.breakDuration;
+    reorderCycles: (state, action) => {
+      state.cycles = action.payload;
+    },
+    deleteCycle: (state, action) => {
+      state.cycles = state.cycles.filter(cycle => cycle.id !== action.payload);
+      if (state.currentCycleIndex >= state.cycles.length) {
+        state.currentCycleIndex = Math.max(0, state.cycles.length - 1);
       }
+    },
+    setCurrentCycle: (state, action) => {
+      state.currentCycleIndex = action.payload;
+      state.timeRemaining = state.cycles[action.payload].duration;
     },
   },
 });
@@ -50,8 +62,11 @@ export const {
   pauseTimer, 
   resetTimer, 
   tickTimer, 
-  setWorkDuration, 
-  setBreakDuration 
+  addCycle,
+  updateCycle,
+  deleteCycle,
+  reorderCycles,
+  setCurrentCycle
 } = timerSlice.actions;
 
 export default timerSlice.reducer;

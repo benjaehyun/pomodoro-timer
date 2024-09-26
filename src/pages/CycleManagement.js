@@ -1,6 +1,6 @@
 import React from 'react';
 import { Container, Typography, Box } from '@mui/material';
-import AddCycleForm from '../components/AddCycleForm';
+import AddCycleForm from '../components/CycleForm';
 import DraggableCycleList from '../components/DraggableCycleList';
 
 function CycleManagement() {
