@@ -11,7 +11,8 @@ import {
   Switch, 
   FormControlLabel,
   IconButton,
-  InputAdornment
+  InputAdornment,
+  Alert
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import Visibility from '@mui/icons-material/Visibility';
@@ -28,6 +29,8 @@ const Auth = ({ open, onClose }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [passwordError, setPasswordError] = useState('');
+  const [emailError, setEmailError] = useState('');
+  const [generalError, setGeneralError] = useState('');
 
   const dispatch = useDispatch();
 
@@ -41,6 +44,8 @@ const Auth = ({ open, onClose }) => {
     setShowPassword(false);
     setShowConfirmPassword(false);
     setPasswordError('');
+    setEmailError('');
+    setGeneralError('');
   };
 
   useEffect(() => {
@@ -49,18 +54,39 @@ const Auth = ({ open, onClose }) => {
     }
   }, [open]);
 
-  const handleSubmit = (e) => {
+  const validateEmail = (email) => {
+    const re = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}$/;
+    return re.test(String(email).toLowerCase());
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setGeneralError('');
     if (isLogin) {
-      dispatch(login({ email, password }));
+      try {
+        await dispatch(login({ email, password })).unwrap();
+        onClose();
+      } catch (error) {
+        setGeneralError(error.message || 'An error occurred during login');
+      }
     } else {
       if (password !== confirmPassword) {
         setPasswordError("Passwords don't match");
         return;
       }
-      dispatch(register({ username, email, password, displayName }));
+      try {
+        await dispatch(register({ username, email, password, displayName })).unwrap();
+        onClose();
+      } catch (error) {
+        if (error.message === 'email already exists') {
+          setEmailError('This email is already registered');
+        } else if (error.message === 'username already exists') {
+          setGeneralError('This username is already taken');
+        } else {
+          setGeneralError(error.message || 'An error occurred during registration');
+        }
+      }
     }
-    onClose();
   };
 
   const handleClose = () => {
@@ -74,6 +100,45 @@ const Auth = ({ open, onClose }) => {
 
   const handleConfirmPasswordVisibility = () => {
     setShowConfirmPassword(!showConfirmPassword);
+  };
+
+  const handleEmailChange = (e) => {
+    const newEmail = e.target.value;
+    setEmail(newEmail);
+    if (newEmail && !validateEmail(newEmail)) {
+      setEmailError('Please enter a valid email address');
+    } else {
+      setEmailError('');
+    }
+  };
+
+  const handlePasswordChange = (e) => {
+    const newPassword = e.target.value;
+    setPassword(newPassword);
+    if (!isLogin && confirmPassword && newPassword !== confirmPassword) {
+      setPasswordError("Passwords don't match");
+    } else {
+      setPasswordError('');
+    }
+  };
+
+  const handleConfirmPasswordChange = (e) => {
+    const newConfirmPassword = e.target.value;
+    setConfirmPassword(newConfirmPassword);
+    if (password !== newConfirmPassword) {
+      setPasswordError("Passwords don't match");
+    } else {
+      setPasswordError('');
+    }
+  };
+
+  const isFormValid = () => {
+    if (isLogin) {
+      return email && password && !emailError;
+    } else {
+      return username && email && password && confirmPassword && displayName && 
+             !emailError && !passwordError && password === confirmPassword;
+    }
   };
 
   return (
@@ -99,6 +164,7 @@ const Auth = ({ open, onClose }) => {
         </IconButton>
       </DialogTitle>
       <DialogContent>
+        {generalError && <Alert severity="error" sx={{ mb: 2 }}>{generalError}</Alert>}
         <Box component="form" onSubmit={handleSubmit} sx={{ mt: 1 }}>
           {!isLogin && (
             <TextField
@@ -124,7 +190,9 @@ const Auth = ({ open, onClose }) => {
             autoComplete="email"
             autoFocus={isLogin}
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={handleEmailChange}
+            error={!!emailError}
+            helperText={emailError}
           />
           <TextField
             margin="normal"
@@ -136,7 +204,7 @@ const Auth = ({ open, onClose }) => {
             id="password"
             autoComplete={isLogin ? "current-password" : "new-password"}
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            onChange={handlePasswordChange}
             InputProps={{
               endAdornment: (
                 <InputAdornment position="end">
@@ -162,7 +230,7 @@ const Auth = ({ open, onClose }) => {
                 type={showConfirmPassword ? "text" : "password"}
                 id="confirmPassword"
                 value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
+                onChange={handleConfirmPasswordChange}
                 error={!!passwordError}
                 helperText={passwordError}
                 InputProps={{
@@ -197,6 +265,7 @@ const Auth = ({ open, onClose }) => {
             fullWidth
             variant="contained"
             sx={{ mt: 3, mb: 2 }}
+            disabled={!isFormValid()}
           >
             {isLogin ? 'Sign In' : 'Sign Up'}
           </Button>

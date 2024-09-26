@@ -24,7 +24,17 @@ async function register(req, res) {
       token 
     });
   } catch (error) {
-    res.status(400).json({ message: 'Error registering user', error: error.message });
+    if (error.code === 11000) {
+      // Duplicate key error
+      const field = Object.keys(error.keyPattern)[0];
+      res.status(400).json({ message: `${field} already exists` });
+    } else if (error.name === 'ValidationError') {
+      // Validation error
+      const errors = Object.values(error.errors).map(err => err.message);
+      res.status(400).json({ message: 'Validation Error', errors });
+    } else {
+      res.status(400).json({ message: 'Error registering user', error: error.message });
+    }
   }
 }
 
@@ -32,8 +42,12 @@ async function login(req, res) {
   try {
     const { email, password } = req.body;
     const user = await User.findOne({ email });
-    if (!user || !(await bcrypt.compare(password, user.password))) {
-      return res.status(401).json({ message: 'Invalid credentials' });
+    if (!user) {
+      return res.status(401).json({ message: 'Invalid email or password' });
+    }
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return res.status(401).json({ message: 'Invalid email or password' });
     }
     const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET);
     res.json({ 
