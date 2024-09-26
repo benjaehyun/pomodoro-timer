@@ -1,10 +1,10 @@
 import { configureStore } from '@reduxjs/toolkit';
 import timerReducer from '../features/timerSlice';
-import cyclesReducer from '../features/cyclesSlice'
+import authReducer from '../features/authSlice'
 
 export const store = configureStore({
   reducer: {
     timer: timerReducer,
-    cycles: cyclesReducer,
+    auth: authReducer,
   },
 });

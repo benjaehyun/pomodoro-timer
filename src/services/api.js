@@ -13,8 +13,9 @@ api.interceptors.response.use(
   }
 );
 
-export const getUsers = () => api.get('/users');
-export const createUser = (userData) => api.post('/users', userData);
+export const register = (userData) => api.post('/users/register', userData);
+export const login = (credentials) => api.post('/users/login', credentials);
+export const getMe = () => api.get('/users/me');
 
 // Add more API calls as needed
 

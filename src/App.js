@@ -4,7 +4,7 @@ import { CssBaseline, ThemeProvider, createTheme } from '@mui/material';
 import { requestNotificationPermission } from './utils/notifications';
 import Home from './pages/Home';
 import Settings from './pages/Settings';
-import CycleManagement from './pages/CycleManagement';
+import Profile from './pages/Profile';
 
 const theme = createTheme({
   // Customize your theme here
@@ -32,7 +32,7 @@ function App() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/settings" element={<Settings />} />
-          <Route path="/cycles" element={<CycleManagement />} />
+          <Route path="/profile" element={<Profile />} />
         </Routes>
       </Router>
     </ThemeProvider>
