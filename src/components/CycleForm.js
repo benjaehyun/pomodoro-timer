@@ -13,19 +13,22 @@ import {
 } from '@mui/material';
 import { addCycle, updateCycle } from '../features/timerSlice';
 
-const MAX_NOTE_LENGTH = 500; // Set the maximum note length
+const MAX_NOTE_LENGTH = 500;
+const initialCycleState = { label: '', duration: 25, note: '' };
 
 const CycleForm = ({ cycleToEdit, open, onClose }) => {
   const dispatch = useDispatch();
-  const [cycle, setCycle] = useState({ label: '', duration: 25, note: '' });
+  const [cycle, setCycle] = useState(initialCycleState);
 
   useEffect(() => {
-    if (cycleToEdit) {
-      setCycle({ ...cycleToEdit, duration: cycleToEdit.duration / 60 });
-    } else {
-      setCycle({ label: '', duration: 25, note: '' });
+    if (open) {
+      if (cycleToEdit) {
+        setCycle({ ...cycleToEdit, duration: cycleToEdit.duration / 60 });
+      } else {
+        setCycle(initialCycleState);
+      }
     }
-  }, [cycleToEdit]);
+  }, [open, cycleToEdit]);
 
   const handleSubmit = () => {
     const newCycle = { ...cycle, duration: cycle.duration * 60, id: cycle.id || Date.now().toString() };

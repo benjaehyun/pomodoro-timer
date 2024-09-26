@@ -8,7 +8,7 @@ import { reorderCycles, deleteCycle, setCurrentCycle } from '../features/timerSl
 const DraggableCycleList = ({ onEditCycle }) => {
   const dispatch = useDispatch();
   const cycles = useSelector(state => state.timer.cycles);
-  const currentCycleIndex = useSelector(state => state.timer.currentCycleIndex);
+  const currentCycleId = useSelector(state => state.timer.currentCycleId);
 
   const onDragEnd = (result) => {
     if (!result.destination) return;
@@ -37,11 +37,11 @@ const DraggableCycleList = ({ onEditCycle }) => {
                     ref={provided.innerRef}
                     {...provided.draggableProps}
                     sx={{
-                      backgroundColor: index === currentCycleIndex 
+                      backgroundColor: cycle.id === currentCycleId 
                         ? 'rgba(0, 150, 136, 0.1)' 
                         : snapshot.isDragging ? 'rgba(0, 0, 0, 0.1)' : 'transparent',
                       marginBottom: 1,
-                      borderLeft: index === currentCycleIndex ? '4px solid #009688' : 'none',
+                      borderLeft: cycle.id === currentCycleId ? '4px solid #009688' : 'none',
                     }}
                   >
                     <IconButton {...provided.dragHandleProps} size="small">
@@ -59,7 +59,7 @@ const DraggableCycleList = ({ onEditCycle }) => {
                           )}
                         </>
                       }
-                      onClick={() => dispatch(setCurrentCycle(index))}
+                      onClick={() => dispatch(setCurrentCycle(cycle.id))}
                       sx={{ flexGrow: 1, ml: 1 }}
                     />
                     <Box>
