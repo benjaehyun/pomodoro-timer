@@ -24,6 +24,7 @@ connection.once('open', () => {
 
 // Routes will be added here
 app.use('/api/users', require('./routes/users'));
+app.use('/api/cycles', require('./routes/cycles'));
 
 app.listen(PORT, () => {
   console.log(`Server is running on port: ${PORT}`);
