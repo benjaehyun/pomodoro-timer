@@ -3,7 +3,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
 import { List, ListItem, IconButton, Box, Typography } from '@mui/material';
 import { Delete, Edit, DragIndicator } from '@mui/icons-material';
-import { reorderCycles, deleteCycle, setCurrentCycle } from '../features/timerSlice';
+import { reorderCycles, deleteCycle, setCurrentCycle, updateCurrentConfigurationToCustom } from '../features/timerSlice';
 
 const DraggableCycleList = ({ onEditCycle }) => {
   const dispatch = useDispatch();
@@ -18,6 +18,12 @@ const DraggableCycleList = ({ onEditCycle }) => {
     items.splice(result.destination.index, 0, reorderedItem);
 
     dispatch(reorderCycles(items));
+    dispatch(updateCurrentConfigurationToCustom());
+  };
+
+  const handleDeleteCycle = (cycleId) => {
+    dispatch(deleteCycle(cycleId));
+    dispatch(updateCurrentConfigurationToCustom());
   };
 
   const truncateNote = (note, maxLength = 25) => {
@@ -60,7 +66,7 @@ const DraggableCycleList = ({ onEditCycle }) => {
                       <IconButton onClick={() => onEditCycle(cycle)} size="small">
                         <Edit />
                       </IconButton>
-                      <IconButton onClick={() => dispatch(deleteCycle(cycle.id))} size="small">
+                      <IconButton onClick={() => handleDeleteCycle(cycle.id)} size="small">
                         <Delete />
                       </IconButton>
                     </Box>

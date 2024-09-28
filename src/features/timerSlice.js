@@ -39,12 +39,18 @@ const defaultConfigurations = [
   },
 ];
 
+const customConfig = {
+  id: 'custom',
+  name: 'Custom',
+  cycles: [],
+};
+
 const initialState = {
   isRunning: false,
   timeRemaining: 25 * 60,
   cycles: defaultConfigurations[0].cycles,
   currentCycleId: defaultConfigurations[0].cycles[0].id,
-  configurations: defaultConfigurations,
+  configurations: [...defaultConfigurations, customConfig],
   currentConfigId: defaultConfigurations[0].id,
 };
 
@@ -74,23 +80,41 @@ const timerSlice = createSlice({
     },
     addCycle: (state, action) => {
       state.cycles.push(action.payload);
+      // Update custom configuration
+      if (state.currentConfigId === 'custom') {
+        const customConfigIndex = state.configurations.findIndex(c => c.id === 'custom');
+        if (customConfigIndex !== -1) {
+          state.configurations[customConfigIndex].cycles = [...state.cycles];
+        }
+      }
     },
     updateCycle: (state, action) => {
       const index = state.cycles.findIndex(cycle => cycle.id === action.payload.id);
       if (index !== -1) {
         state.cycles[index] = action.payload;
-        if (state.currentCycleId === action.payload.id) {
-          state.timeRemaining = Math.min(state.timeRemaining, action.payload.duration);
+        // Update custom configuration
+        if (state.currentConfigId === 'custom') {
+          const customConfigIndex = state.configurations.findIndex(c => c.id === 'custom');
+          if (customConfigIndex !== -1) {
+            state.configurations[customConfigIndex].cycles = [...state.cycles];
+          }
         }
       }
     },
     reorderCycles: (state, action) => {
       state.cycles = action.payload;
+      // Update custom configuration
+      if (state.currentConfigId === 'custom') {
+        const customConfigIndex = state.configurations.findIndex(c => c.id === 'custom');
+        if (customConfigIndex !== -1) {
+          state.configurations[customConfigIndex].cycles = [...state.cycles];
+        }
+      }
     },
     deleteCycle: (state, action) => {
       const deletedIndex = state.cycles.findIndex(cycle => cycle.id === action.payload);
       state.cycles = state.cycles.filter(cycle => cycle.id !== action.payload);
-
+    
       if (state.cycles.length > 0) {
         if (state.currentCycleId === action.payload) {
           // If deleting current cycle, move to the next (or first if deleting the last)
@@ -108,6 +132,14 @@ const timerSlice = createSlice({
         state.timeRemaining = 0;
         state.isRunning = false;
       }
+    
+      // Update custom configuration
+      if (state.currentConfigId === 'custom') {
+        const customConfigIndex = state.configurations.findIndex(c => c.id === 'custom');
+        if (customConfigIndex !== -1) {
+          state.configurations[customConfigIndex].cycles = [...state.cycles];
+        }
+      }
     },
     setCurrentCycle: (state, action) => {
       state.currentCycleId = action.payload;
@@ -117,9 +149,9 @@ const timerSlice = createSlice({
       const config = state.configurations.find(c => c.id === action.payload);
       if (config) {
         state.currentConfigId = config.id;
-        state.cycles = config.cycles;
-        state.currentCycleId = config.cycles[0].id;
-        state.timeRemaining = config.cycles[0].duration;
+        state.cycles = [...config.cycles];
+        state.currentCycleId = config.cycles.length > 0 ? config.cycles[0].id : null;
+        state.timeRemaining = config.cycles.length > 0 ? config.cycles[0].duration : 0;
         state.isRunning = false;
       }
     },
@@ -131,9 +163,9 @@ const timerSlice = createSlice({
       if (index !== -1) {
         state.configurations[index] = action.payload;
         if (state.currentConfigId === action.payload.id) {
-          state.cycles = action.payload.cycles;
-          state.currentCycleId = action.payload.cycles[0].id;
-          state.timeRemaining = action.payload.cycles[0].duration;
+          state.cycles = [...action.payload.cycles];
+          state.currentCycleId = action.payload.cycles.length > 0 ? action.payload.cycles[0].id : null;
+          state.timeRemaining = action.payload.cycles.length > 0 ? action.payload.cycles[0].duration : 0;
         }
       }
     },
@@ -142,10 +174,32 @@ const timerSlice = createSlice({
       if (state.currentConfigId === action.payload) {
         const defaultConfig = state.configurations[0];
         state.currentConfigId = defaultConfig.id;
-        state.cycles = defaultConfig.cycles;
-        state.currentCycleId = defaultConfig.cycles[0].id;
-        state.timeRemaining = defaultConfig.cycles[0].duration;
+        state.cycles = [...defaultConfig.cycles];
+        state.currentCycleId = defaultConfig.cycles.length > 0 ? defaultConfig.cycles[0].id : null;
+        state.timeRemaining = defaultConfig.cycles.length > 0 ? defaultConfig.cycles[0].duration : 0;
       }
+    },
+    updateCurrentConfigurationToCustom: (state) => {
+      if (state.currentConfigId !== 'custom') {
+        const customConfig = state.configurations.find(c => c.id === 'custom');
+        customConfig.cycles = [...state.cycles];
+        state.currentConfigId = 'custom';
+      }
+      // Always update the custom configuration in the configurations array
+      const customConfigIndex = state.configurations.findIndex(c => c.id === 'custom');
+      if (customConfigIndex !== -1) {
+        state.configurations[customConfigIndex].cycles = [...state.cycles];
+      }
+    },
+    saveCustomConfiguration: (state, action) => {
+      const { name } = action.payload;
+      const newConfig = {
+        id: `custom-${Date.now()}`,
+        name,
+        cycles: [...state.cycles],
+      };
+      state.configurations.push(newConfig);
+      state.currentConfigId = newConfig.id;
     },
   },
 });
@@ -164,6 +218,8 @@ export const {
   addConfiguration,
   updateConfiguration,
   deleteConfiguration,
+  updateCurrentConfigurationToCustom,
+  saveCustomConfiguration,
 } = timerSlice.actions;
 
 export default timerSlice.reducer;

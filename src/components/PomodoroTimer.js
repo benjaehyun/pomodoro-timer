@@ -3,7 +3,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import { Box, Typography, Fab, Paper, Accordion, AccordionSummary, AccordionDetails } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import { tickTimer, setCurrentCycle } from '../features/timerSlice';
+import { tickTimer, setCurrentCycle, updateCurrentConfigurationToCustom } from '../features/timerSlice';
 import TimerDisplay from './TimerDisplay';
 import TimerControls from './TimerControls';
 import DraggableCycleList from './DraggableCycleList';
@@ -38,6 +38,15 @@ const PomodoroTimer = () => {
     }
   }, [timeRemaining, cycles, currentCycleId, dispatch]);
 
+  // const handleEditCycle = (cycle) => {
+  //   setCycleToEdit(cycle);
+  //   setShowCycleForm(true);
+  // };
+
+  // const handleCloseCycleForm = () => {
+  //   setShowCycleForm(false);
+  //   setCycleToEdit(null);
+  // };
   const handleEditCycle = (cycle) => {
     setCycleToEdit(cycle);
     setShowCycleForm(true);
@@ -46,7 +55,14 @@ const PomodoroTimer = () => {
   const handleCloseCycleForm = () => {
     setShowCycleForm(false);
     setCycleToEdit(null);
+    // dispatch(updateCurrentConfigurationToCustom());
   };
+
+  const handleAddCycle = () => {
+    setShowCycleForm(true);
+    setCycleToEdit(null);
+  };
+
 
   const currentCycle = cycles.find(cycle => cycle.id === currentCycleId);
 
@@ -73,23 +89,21 @@ const PomodoroTimer = () => {
           No cycles available. Select a configuration or add a new cycle to start the timer.
         </Typography>
       )}
-      {/* <Box sx={{ mt: 4, mx: 2 }}> */}
-        <Accordion 
-          expanded={isListExpanded} 
-          onChange={() => setIsListExpanded(!isListExpanded)}
-        >
-          <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-            <Typography>Cycles</Typography>
-          </AccordionSummary>
-          <AccordionDetails>
-            <DraggableCycleList onEditCycle={handleEditCycle} />
-          </AccordionDetails>
-        </Accordion>
-      {/* </Box> */}
+      <Accordion 
+        expanded={isListExpanded} 
+        onChange={() => setIsListExpanded(!isListExpanded)}
+      >
+        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+          <Typography>Cycles</Typography>
+        </AccordionSummary>
+        <AccordionDetails>
+          <DraggableCycleList onEditCycle={handleEditCycle} />
+        </AccordionDetails>
+      </Accordion>
       <Fab 
         color="primary" 
         aria-label="add" 
-        onClick={() => setShowCycleForm(true)}
+        onClick={handleAddCycle}
         sx={{ position: 'fixed', bottom: 16, right: 16 }}
       >
         <AddIcon />
