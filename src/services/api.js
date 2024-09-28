@@ -13,6 +13,15 @@ api.interceptors.response.use(
   }
 );
 
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+
 export const register = (userData) => api.post('/users/register', userData);
 export const login = (credentials) => api.post('/users/login', credentials);
 export const getMe = () => api.get('/users/me');

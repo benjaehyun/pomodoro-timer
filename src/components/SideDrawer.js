@@ -78,7 +78,7 @@ const SideDrawer = () => {
         {[
           { text: 'Home', icon: <HomeIcon />, path: '/' },
           { text: 'Settings', icon: <SettingsIcon />, path: '/settings' },
-          { text: 'Cycle Management', icon: <ListIcon />, path: '/cycles' },
+          // { text: 'Cycle Management', icon: <ListIcon />, path: '/cycles' },
         ].map((item) => (
           <ListItem 
             key={item.text} 

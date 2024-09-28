@@ -1,7 +1,7 @@
 import React from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
-import { List, ListItem, ListItemText, IconButton, Box, Typography } from '@mui/material';
+import { List, ListItem, IconButton, Box, Typography } from '@mui/material';
 import { Delete, Edit, DragIndicator } from '@mui/icons-material';
 import { reorderCycles, deleteCycle, setCurrentCycle } from '../features/timerSlice';
 
@@ -20,7 +20,7 @@ const DraggableCycleList = ({ onEditCycle }) => {
     dispatch(reorderCycles(items));
   };
 
-  const truncateNote = (note, maxLength = 50) => {
+  const truncateNote = (note, maxLength = 25) => {
     if (!note) return '';
     return note.length <= maxLength ? note : `${note.substr(0, maxLength)}...`;
   };
@@ -47,21 +47,15 @@ const DraggableCycleList = ({ onEditCycle }) => {
                     <IconButton {...provided.dragHandleProps} size="small">
                       <DragIndicator />
                     </IconButton>
-                    <ListItemText
-                      primary={cycle.label}
-                      secondary={
-                        <>
-                          {`${cycle.duration / 60} minutes`}
-                          {cycle.note && (
-                            <Typography variant="body2" sx={{ mt: 0.5, fontStyle: 'italic' }}>
-                              Note: {truncateNote(cycle.note)}
-                            </Typography>
-                          )}
-                        </>
-                      }
-                      onClick={() => dispatch(setCurrentCycle(cycle.id))}
-                      sx={{ flexGrow: 1, ml: 1 }}
-                    />
+                    <Box sx={{ flexGrow: 1, ml: 1 }} onClick={() => dispatch(setCurrentCycle(cycle.id))}>
+                      <Typography variant="subtitle1">{cycle.label}</Typography>
+                      <Typography variant="body2">{`${cycle.duration / 60} minutes`}</Typography>
+                      {cycle.note && (
+                        <Typography variant="body2" sx={{ mt: 0.5, fontStyle: 'italic' }}>
+                          {truncateNote(cycle.note)}
+                        </Typography>
+                      )}
+                    </Box>
                     <Box>
                       <IconButton onClick={() => onEditCycle(cycle)} size="small">
                         <Edit />

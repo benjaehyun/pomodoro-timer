@@ -6,20 +6,30 @@ export const register = createAsyncThunk(
   async (userData, { rejectWithValue }) => {
     try {
       const response = await api.register(userData);
-      localStorage.setItem('user', JSON.stringify(response.data));
+      // localStorage.setItem('user', JSON.stringify(response.data.user));
+      localStorage.setItem('token', response.data.token);
       return response.data;
     } catch (error) {
-      return rejectWithValue(error.response.data);
+      // console.error('Registration error:', error.response);
+      if (error.response && error.response.data) {
+        if (error.response.data.errors && Array.isArray(error.response.data.errors)) {
+          return rejectWithValue({ message: error.response.data.errors[0] });
+        } else if (error.response.data.message) {
+          return rejectWithValue({ message: error.response.data.message });
+        }
+      }
+      return rejectWithValue({ message: 'Registration failed. Please try again.' });
     }
   }
 );
+
 
 export const login = createAsyncThunk(
   'auth/login',
   async (credentials, { rejectWithValue }) => {
     try {
       const response = await api.login(credentials);
-      localStorage.setItem('user', JSON.stringify(response.data));
+      localStorage.setItem('token', response.data.token);
       return response.data;
     } catch (error) {
       return rejectWithValue(error.response.data);
@@ -29,18 +39,61 @@ export const login = createAsyncThunk(
 
 export const logout = createAsyncThunk('auth/logout', async () => {
   localStorage.removeItem('user');
+  localStorage.removeItem('token');
 });
 
-const user = JSON.parse(localStorage.getItem('user'));
+// export const fetchUserData = createAsyncThunk(
+//   'auth/fetchUserData',
+//   async (_, { rejectWithValue }) => {
+//     try {
+//       const token = localStorage.getItem('token');
+//       if (!token) throw new Error('No token found');
+      
+//       const response = await api.getMe(token);
+//       return response.data;
+//     } catch (error) {
+//       localStorage.removeItem('token'); // Clear token on fetch failure
+//       return rejectWithValue(error.response?.data || error.message);
+//     }
+//   }
+// );
 
-const initialState = user
-  ? { isLoggedIn: true, user }
-  : { isLoggedIn: false, user: null };
+export const checkAndFetchUserData = createAsyncThunk(
+  'auth/checkAndFetchUserData',
+  async (_, { rejectWithValue }) => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      return null; // No token, remain in anonymous state
+    }
+    try {
+      const response = await api.getMe();
+      return response.data;
+    } catch (error) {
+      localStorage.removeItem('token'); // Clear invalid token
+      return rejectWithValue(error.response?.data || error.message);
+    }
+  }
+);
+
+// const user = JSON.parse(localStorage.getItem('user'));
 
 const authSlice = createSlice({
   name: 'auth',
-  initialState,
-  reducers: {},
+  initialState: {
+    isLoggedIn: false,
+    user: null,
+    token: localStorage.getItem('token'),
+    isLoading: false,
+    error: null,
+  },
+  reducers: {
+    logout: (state) => {
+      state.isLoggedIn = false;
+      state.user = null;
+      state.token = null;
+      localStorage.removeItem('token');
+    },
+  },
   extraReducers: (builder) => {
     builder
       .addCase(register.fulfilled, (state, action) => {
@@ -62,6 +115,20 @@ const authSlice = createSlice({
       .addCase(logout.fulfilled, (state) => {
         state.isLoggedIn = false;
         state.user = null;
+      })
+      .addCase(checkAndFetchUserData.fulfilled, (state, action) => {
+        state.isLoading = false;
+        if (action.payload) {
+          state.isLoggedIn = true;
+          state.user = action.payload;
+        }
+        // If payload is null, remain in anonymous state
+      })
+      .addCase(checkAndFetchUserData.rejected, (state, action) => {
+        state.isLoading = false;
+        state.isLoggedIn = false;
+        state.user = null;
+        state.error = action.payload;
       });
   },
 });

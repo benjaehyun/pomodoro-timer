@@ -5,12 +5,18 @@ import { requestNotificationPermission } from './utils/notifications';
 import Home from './pages/Home';
 import Settings from './pages/Settings';
 import Profile from './pages/Profile';
+import ProtectedRoute from './components/ProtectedRoute';
+import LoadingOverlay from './components/LoadingOverlay';
+import { useDispatch } from 'react-redux';
+import { checkAndFetchUserData } from './features/authSlice';
+
 
 const theme = createTheme({
   // Customize your theme here
 });
 
 function App() {
+  const dispatch = useDispatch();
 
   useEffect(() => {
     const requestPermission = async () => {
@@ -21,18 +27,26 @@ function App() {
         console.log('Notification permission denied');
       }
     };
-
     requestPermission();
   }, []);
+
+  useEffect(() => {
+    dispatch(checkAndFetchUserData());
+  }, [dispatch]);
 
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <Router>
+        {/* <LoadingOverlay isLoading={isLoading} /> */}
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/settings" element={<Settings />} />
-          <Route path="/profile" element={<Profile />} />
+          <Route path="/profile" element={
+            <ProtectedRoute>
+              <Profile />
+            </ProtectedRoute>
+          } />
         </Routes>
       </Router>
     </ThemeProvider>

@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { Box, Typography, Fab, Paper } from '@mui/material';
+import { Box, Typography, Fab, Paper, Accordion, AccordionSummary, AccordionDetails } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { tickTimer, setCurrentCycle } from '../features/timerSlice';
 import TimerDisplay from './TimerDisplay';
 import TimerControls from './TimerControls';
@@ -16,6 +17,7 @@ const PomodoroTimer = () => {
   const audioRef = useRef(new Audio('/audio/water-droplet.mp3'));
   const [showCycleForm, setShowCycleForm] = useState(false);
   const [cycleToEdit, setCycleToEdit] = useState(null);
+  const [isListExpanded, setIsListExpanded] = useState(true);
 
   useEffect(() => {
     let interval;
@@ -71,9 +73,19 @@ const PomodoroTimer = () => {
           No cycles available. Select a configuration or add a new cycle to start the timer.
         </Typography>
       )}
-      <Box sx={{ mt: 4, mx: 2 }}>
-        <DraggableCycleList onEditCycle={handleEditCycle} />
-      </Box>
+      {/* <Box sx={{ mt: 4, mx: 2 }}> */}
+        <Accordion 
+          expanded={isListExpanded} 
+          onChange={() => setIsListExpanded(!isListExpanded)}
+        >
+          <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+            <Typography>Cycles</Typography>
+          </AccordionSummary>
+          <AccordionDetails>
+            <DraggableCycleList onEditCycle={handleEditCycle} />
+          </AccordionDetails>
+        </Accordion>
+      {/* </Box> */}
       <Fab 
         color="primary" 
         aria-label="add" 

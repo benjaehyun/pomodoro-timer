@@ -6,8 +6,7 @@ import {
   DialogContent, 
   TextField, 
   Button, 
-  Box, 
-  Typography, 
+  Box,  
   Switch, 
   FormControlLabel,
   IconButton,
@@ -19,7 +18,9 @@ import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import { login, register } from '../features/authSlice';
 
+
 const Auth = ({ open, onClose }) => {
+  const dispatch = useDispatch();
   const [isLogin, setIsLogin] = useState(true);
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
@@ -28,11 +29,15 @@ const Auth = ({ open, onClose }) => {
   const [displayName, setDisplayName] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [passwordError, setPasswordError] = useState('');
-  const [emailError, setEmailError] = useState('');
-  const [generalError, setGeneralError] = useState('');
+  const [error, setError] = useState('');
 
-  const dispatch = useDispatch();
+
+
+  useEffect(() => {
+    if (!open) {
+      resetForm();
+    }
+  }, [open]);
 
   const resetForm = () => {
     setUsername('');
@@ -43,48 +48,51 @@ const Auth = ({ open, onClose }) => {
     setIsLogin(true);
     setShowPassword(false);
     setShowConfirmPassword(false);
-    setPasswordError('');
-    setEmailError('');
-    setGeneralError('');
-  };
-
-  useEffect(() => {
-    if (!open) {
-      resetForm();
-    }
-  }, [open]);
-
-  const validateEmail = (email) => {
-    const re = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}$/;
-    return re.test(String(email).toLowerCase());
+    setError('');
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setGeneralError('');
+    setError('');
+
+    const handleError = (resultAction) => {
+      console.error('Action failed:', resultAction);
+      if (resultAction.payload && resultAction.payload.message) {
+        setError(resultAction.payload.message);
+      } else if (resultAction.error && resultAction.error.message) {
+        setError(resultAction.error.message);
+      } else {
+        setError('An unexpected error occurred. Please try again.');
+      }
+    };
+
     if (isLogin) {
       try {
-        await dispatch(login({ email, password })).unwrap();
-        onClose();
-      } catch (error) {
-        setGeneralError(error.message || 'An error occurred during login');
+        const resultAction = await dispatch(login({ email, password }));
+        if (login.fulfilled.match(resultAction)) {
+          onClose();
+        } else if (login.rejected.match(resultAction)) {
+          handleError(resultAction);
+        }
+      } catch (err) {
+        console.error('Unexpected login error:', err);
+        setError('An unexpected error occurred during login');
       }
     } else {
       if (password !== confirmPassword) {
-        setPasswordError("Passwords don't match");
+        setError("Passwords don't match");
         return;
       }
       try {
-        await dispatch(register({ username, email, password, displayName })).unwrap();
-        onClose();
-      } catch (error) {
-        if (error.message === 'email already exists') {
-          setEmailError('This email is already registered');
-        } else if (error.message === 'username already exists') {
-          setGeneralError('This username is already taken');
-        } else {
-          setGeneralError(error.message || 'An error occurred during registration');
+        const resultAction = await dispatch(register({ username, email, password, displayName }));
+        if (register.fulfilled.match(resultAction)) {
+          onClose();
+        } else if (register.rejected.match(resultAction)) {
+          handleError(resultAction);
         }
+      } catch (err) {
+        console.error('Unexpected registration error:', err);
+        setError('An unexpected error occurred during registration');
       }
     }
   };
@@ -102,42 +110,17 @@ const Auth = ({ open, onClose }) => {
     setShowConfirmPassword(!showConfirmPassword);
   };
 
-  const handleEmailChange = (e) => {
-    const newEmail = e.target.value;
-    setEmail(newEmail);
-    if (newEmail && !validateEmail(newEmail)) {
-      setEmailError('Please enter a valid email address');
-    } else {
-      setEmailError('');
-    }
-  };
-
-  const handlePasswordChange = (e) => {
-    const newPassword = e.target.value;
-    setPassword(newPassword);
-    if (!isLogin && confirmPassword && newPassword !== confirmPassword) {
-      setPasswordError("Passwords don't match");
-    } else {
-      setPasswordError('');
-    }
-  };
-
-  const handleConfirmPasswordChange = (e) => {
-    const newConfirmPassword = e.target.value;
-    setConfirmPassword(newConfirmPassword);
-    if (password !== newConfirmPassword) {
-      setPasswordError("Passwords don't match");
-    } else {
-      setPasswordError('');
-    }
+  const validateEmail = (email) => {
+    const re = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}$/;
+    return re.test(String(email).toLowerCase());
   };
 
   const isFormValid = () => {
     if (isLogin) {
-      return email && password && !emailError;
+      return email && password && validateEmail(email);
     } else {
       return username && email && password && confirmPassword && displayName && 
-             !emailError && !passwordError && password === confirmPassword;
+             validateEmail(email) && password === confirmPassword;
     }
   };
 
@@ -164,7 +147,7 @@ const Auth = ({ open, onClose }) => {
         </IconButton>
       </DialogTitle>
       <DialogContent>
-        {generalError && <Alert severity="error" sx={{ mb: 2 }}>{generalError}</Alert>}
+        {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
         <Box component="form" onSubmit={handleSubmit} sx={{ mt: 1 }}>
           {!isLogin && (
             <TextField
@@ -190,9 +173,9 @@ const Auth = ({ open, onClose }) => {
             autoComplete="email"
             autoFocus={isLogin}
             value={email}
-            onChange={handleEmailChange}
-            error={!!emailError}
-            helperText={emailError}
+            onChange={(e) => setEmail(e.target.value)}
+            error={!!(email && !validateEmail(email))}
+            helperText={email && !validateEmail(email) ? 'Enter a valid email address' : ''}
           />
           <TextField
             margin="normal"
@@ -204,7 +187,7 @@ const Auth = ({ open, onClose }) => {
             id="password"
             autoComplete={isLogin ? "current-password" : "new-password"}
             value={password}
-            onChange={handlePasswordChange}
+            onChange={(e) => setPassword(e.target.value)}
             InputProps={{
               endAdornment: (
                 <InputAdornment position="end">
@@ -230,9 +213,9 @@ const Auth = ({ open, onClose }) => {
                 type={showConfirmPassword ? "text" : "password"}
                 id="confirmPassword"
                 value={confirmPassword}
-                onChange={handleConfirmPasswordChange}
-                error={!!passwordError}
-                helperText={passwordError}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                error={!!(password !== confirmPassword && confirmPassword !== '')}
+                helperText={password !== confirmPassword && confirmPassword !== '' ? "Passwords don't match" : ''}
                 InputProps={{
                   endAdornment: (
                     <InputAdornment position="end">
@@ -273,13 +256,17 @@ const Auth = ({ open, onClose }) => {
             control={
               <Switch 
                 checked={!isLogin} 
-                onChange={() => setIsLogin(!isLogin)} 
+                onChange={() => {
+                  setIsLogin(!isLogin);
+                  setError('');
+                }}
               />
             }
             label={isLogin ? "Need an account? Register" : "Already have an account? Login"}
           />
         </Box>
       </DialogContent>
+      {/* {authError && <Alert severity="error">{authError}</Alert>} */}
     </Dialog>
   );
 };
