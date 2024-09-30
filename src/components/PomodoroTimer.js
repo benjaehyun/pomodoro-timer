@@ -3,7 +3,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import { Box, Typography, Fab, Paper, Accordion, AccordionSummary, AccordionDetails } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import { tickTimer, setCurrentCycle, updateCurrentConfigurationToCustom } from '../features/timerSlice';
+import { tickTimer, setCurrentCycle } from '../features/timerSlice';
 import TimerDisplay from './TimerDisplay';
 import TimerControls from './TimerControls';
 import DraggableCycleList from './DraggableCycleList';
@@ -18,6 +18,7 @@ const PomodoroTimer = () => {
   const [showCycleForm, setShowCycleForm] = useState(false);
   const [cycleToEdit, setCycleToEdit] = useState(null);
   const [isListExpanded, setIsListExpanded] = useState(true);
+  const currentCycle = cycles.find(cycle => cycle.id === currentCycleId);
 
   useEffect(() => {
     let interval;
@@ -25,10 +26,10 @@ const PomodoroTimer = () => {
       interval = setInterval(() => dispatch(tickTimer()), 1000);
     }
     return () => clearInterval(interval);
-  }, [isRunning, currentCycleId, dispatch]);
+  }, [isRunning, currentCycleId, dispatch, currentCycle?.duration]);
 
   useEffect(() => {
-    if (timeRemaining === 0 && cycles.length > 0) {
+    if (timeRemaining === 0 && cycles.length > 0 && currentCycleId) {
       const currentIndex = cycles.findIndex(cycle => cycle.id === currentCycleId);
       const nextIndex = (currentIndex + 1) % cycles.length;
       const nextCycle = cycles[nextIndex];
@@ -63,8 +64,6 @@ const PomodoroTimer = () => {
     setCycleToEdit(null);
   };
 
-
-  const currentCycle = cycles.find(cycle => cycle.id === currentCycleId);
 
   return (
     <Box sx={{ textAlign: 'center', mt: 4, position: 'relative', minHeight: '100vh' }}>

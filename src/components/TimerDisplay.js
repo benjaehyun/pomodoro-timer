@@ -3,20 +3,32 @@ import { useSelector } from 'react-redux';
 import { Typography, Box, CircularProgress } from '@mui/material';
 
 const TimerDisplay = () => {
-  const { timeRemaining, currentPhase } = useSelector((state) => state.timer);
+  const { timeRemaining, currentCycleId, cycles } = useSelector((state) => state.timer);
 
   const formatTime = (timeInSeconds) => {
-    const minutes = Math.floor(timeInSeconds / 60);
+    const hours = Math.floor(timeInSeconds / 3600);
+    const minutes = Math.floor((timeInSeconds % 3600) / 60);
     const seconds = timeInSeconds % 60;
-    return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    
+    if (hours > 0) {
+      return `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    } else {
+      return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    }
   };
+
+  const currentCycle = cycles.find(cycle => cycle.id === currentCycleId);
+  const progress = currentCycle 
+    ? Math.min(Math.max(((currentCycle.duration - timeRemaining) / currentCycle.duration) * 100, 0), 100)
+    : 0;
 
   return (
     <Box sx={{ position: 'relative', display: 'inline-flex' }}>
       <CircularProgress
         variant="determinate"
-        value={(timeRemaining / (currentPhase === 'work' ? 25 * 60 : 5 * 60)) * 100}
+        value={progress}
         size={200}
+        thickness={4}
       />
       <Box
         sx={{

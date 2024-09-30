@@ -80,6 +80,13 @@ const timerSlice = createSlice({
     },
     addCycle: (state, action) => {
       state.cycles.push(action.payload);
+
+      // if this is the first cycle set it as current cycle
+      if (state.cycles.length === 1) {
+        state.currentCycleId = action.payload.id;
+        state.timeRemaining = action.payload.duration;
+      }
+
       // Update custom configuration
       if (state.currentConfigId === 'custom') {
         const customConfigIndex = state.configurations.findIndex(c => c.id === 'custom');
@@ -88,10 +95,35 @@ const timerSlice = createSlice({
         }
       }
     },
+    // updateCycle: (state, action) => {
+    //   const index = state.cycles.findIndex(cycle => cycle.id === action.payload.id);
+    //   if (index !== -1) {
+    //     state.cycles[index] = action.payload;
+    //     // Update custom configuration
+    //     if (state.currentConfigId === 'custom') {
+    //       const customConfigIndex = state.configurations.findIndex(c => c.id === 'custom');
+    //       if (customConfigIndex !== -1) {
+    //         state.configurations[customConfigIndex].cycles = [...state.cycles];
+    //       }
+    //     }
+    //   }
+    // },
     updateCycle: (state, action) => {
       const index = state.cycles.findIndex(cycle => cycle.id === action.payload.id);
       if (index !== -1) {
+        const oldCycle = state.cycles[index];
         state.cycles[index] = action.payload;
+    
+        // If this is the current cycle, update timeRemaining proportionally
+        if (state.currentCycleId === action.payload.id) {
+          const timeElapsed = oldCycle.duration - state.timeRemaining;
+          const progress = timeElapsed / oldCycle.duration;
+          state.timeRemaining = Math.round(action.payload.duration * (1 - progress));
+    
+          // Ensure timeRemaining is not negative
+          state.timeRemaining = Math.max(state.timeRemaining, 0);
+        }
+    
         // Update custom configuration
         if (state.currentConfigId === 'custom') {
           const customConfigIndex = state.configurations.findIndex(c => c.id === 'custom');
