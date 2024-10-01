@@ -319,7 +319,7 @@ export const {
   deleteConfiguration,
   updateCurrentConfigurationToCustom,
   saveCustomConfiguration, 
-  toggleConfigVisibility
+  toggleConfigVisibility,
 } = timerSlice.actions;
 
 export default timerSlice.reducer;

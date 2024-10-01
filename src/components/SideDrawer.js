@@ -102,6 +102,7 @@ const SideDrawer = ({ onOpenConfigManager }) => {
             sx={{ 
               color: darkGrey,
               width: '100%',
+              cursor: 'pointer',
               '&:hover': {
                 backgroundColor: 'rgba(0, 0, 0, 0.04)',
               },

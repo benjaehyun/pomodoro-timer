@@ -1,25 +1,26 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { 
   Dialog, DialogTitle, DialogContent, List, ListItem, ListItemText, 
-  IconButton, Button, Switch, Box, Typography 
+  IconButton, Switch, Box, Typography
 } from '@mui/material';
-import { Edit, Delete, Visibility, VisibilityOff } from '@mui/icons-material';
+import { Edit, Delete, Close } from '@mui/icons-material';
 import { 
-  setConfiguration, deleteConfigurationAsync, toggleConfigVisibility 
+  setConfiguration, deleteConfigurationAsync, toggleConfigVisibility
 } from '../features/timerSlice';
+
+const defaultConfigurationIds = ['classic-pomodoro', '52-17-focus', '90-minute-focus'];
 
 const ConfigurationManager = ({ open, onClose }) => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { configurations, visibleConfigurations } = useSelector(state => state.timer);
-  const { isLoggedIn } = useSelector(state => state.auth);
 
   const handleSelect = (configId) => {
     dispatch(setConfiguration(configId));
     onClose();
-    navigate('/');  // Navigate to home/timer page
+    navigate('/');
   };
 
   const handleToggleVisibility = (configId) => {
@@ -29,48 +30,80 @@ const ConfigurationManager = ({ open, onClose }) => {
   const handleEdit = (configId) => {
     dispatch(setConfiguration(configId));
     onClose();
-    navigate('/');  // Navigate to home/timer page
+    navigate('/');
   };
 
   const handleDelete = (id) => {
     dispatch(deleteConfigurationAsync(id));
   };
 
+  const filteredConfigurations = configurations.filter(config => config.id !== 'custom');
+
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
-      <DialogTitle>Manage Configurations</DialogTitle>
-      <DialogContent>
-        {isLoggedIn ? (
-          <List>
-            {configurations.map((config) => (
-              <ListItem key={config.id}>
+      <DialogTitle>
+        Manage Configurations
+        <IconButton
+          aria-label="close"
+          onClick={onClose}
+          sx={{
+            position: 'absolute',
+            right: 8,
+            top: 8,
+            color: (theme) => theme.palette.grey[500],
+          }}
+        >
+          <Close />
+        </IconButton>
+      </DialogTitle>
+      <DialogContent sx={{ paddingTop: 0 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1, mt: 2 }}>
+          <Typography variant="subtitle2">Configuration</Typography>
+          <Typography variant="subtitle2">Quick Access</Typography>
+        </Box>
+        <List sx={{ maxHeight: '60vh', overflow: 'auto' }}>
+          {filteredConfigurations.map((config) => {
+            const isDefault = defaultConfigurationIds.includes(config.id);
+            return (
+              <ListItem 
+                key={config.id}
+                sx={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  borderBottom: '1px solid #e0e0e0',
+                  '&:last-child': { borderBottom: 'none' },
+                }}
+              >
                 <ListItemText 
                   primary={config.name} 
                   onClick={() => handleSelect(config.id)}
-                  style={{ cursor: 'pointer' }}
+                  sx={{ cursor: 'pointer', flexGrow: 1 }}
                 />
-                <Switch
-                  checked={visibleConfigurations.includes(config.id)}
-                  onChange={() => handleToggleVisibility(config.id)}
-                  icon={<VisibilityOff />}
-                  checkedIcon={<Visibility />}
-                />
-                {!config.isDefault && (
-                  <>
-                    <IconButton edge="end" aria-label="edit" onClick={() => handleEdit(config.id)}>
-                      <Edit />
-                    </IconButton>
-                    <IconButton edge="end" aria-label="delete" onClick={() => handleDelete(config.id)}>
-                      <Delete />
-                    </IconButton>
-                  </>
-                )}
+                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                  <Typography variant="body2" sx={{ mr: 1 }}>
+                    {visibleConfigurations.includes(config.id) ? 'Visible' : 'Hidden'}
+                  </Typography>
+                  <Switch
+                    checked={visibleConfigurations.includes(config.id)}
+                    onChange={() => handleToggleVisibility(config.id)}
+                    color="primary"
+                  />
+                  {!isDefault && (
+                    <>
+                      <IconButton aria-label="edit" onClick={() => handleEdit(config.id)} size="small">
+                        <Edit />
+                      </IconButton>
+                      <IconButton aria-label="delete" onClick={() => handleDelete(config.id)} size="small">
+                        <Delete />
+                      </IconButton>
+                    </>
+                  )}
+                </Box>
               </ListItem>
-            ))}
-          </List>
-        ) : (
-          <Typography>Please log in to manage configurations.</Typography>
-        )}
+            );
+          })}
+        </List>
       </DialogContent>
     </Dialog>
   );
