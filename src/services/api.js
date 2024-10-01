@@ -21,11 +21,15 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-
+// user api
 export const register = (userData) => api.post('/users/register', userData);
 export const login = (credentials) => api.post('/users/login', credentials);
 export const getMe = () => api.get('/users/me');
 
-// Add more API calls as needed
+// configuration api
+export const getConfigurations = () => api.get('/configurations');
+export const createConfiguration = (configData) => api.post('/configurations', configData);
+export const updateConfiguration = (id, configData) => api.put(`/configurations/${id}`, configData);
+export const deleteConfiguration = (id) => api.delete(`/configurations/${id}`);
 
 export default api;

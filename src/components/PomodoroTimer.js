@@ -1,9 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { Box, Typography, Fab, Paper, Accordion, AccordionSummary, AccordionDetails } from '@mui/material';
+import { 
+  Box, Typography, Fab, Paper, Accordion, AccordionSummary, AccordionDetails, 
+  Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField 
+} from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import { tickTimer, setCurrentCycle } from '../features/timerSlice';
+import { tickTimer, setCurrentCycle, updateConfiguration, saveConfigurationAsync } from '../features/timerSlice';
 import TimerDisplay from './TimerDisplay';
 import TimerControls from './TimerControls';
 import DraggableCycleList from './DraggableCycleList';
@@ -13,11 +16,14 @@ import ConfigurationSelector from './ConfigurationSelector';
 
 const PomodoroTimer = () => {
   const dispatch = useDispatch();
-  const { isRunning, timeRemaining, cycles, currentCycleId } = useSelector((state) => state.timer);
+  const { isRunning, timeRemaining, cycles, currentCycleId, currentConfigId, configurations } = useSelector((state) => state.timer);
   const audioRef = useRef(new Audio('/audio/water-droplet.mp3'));
   const [showCycleForm, setShowCycleForm] = useState(false);
   const [cycleToEdit, setCycleToEdit] = useState(null);
   const [isListExpanded, setIsListExpanded] = useState(true);
+  const [saveDialogOpen, setSaveDialogOpen] = useState(false);
+  const [configName, setConfigName] = useState('');
+  const currentConfig = configurations.find(config => config.id === currentConfigId);
   const currentCycle = cycles.find(cycle => cycle.id === currentCycleId);
 
   useEffect(() => {
@@ -26,7 +32,7 @@ const PomodoroTimer = () => {
       interval = setInterval(() => dispatch(tickTimer()), 1000);
     }
     return () => clearInterval(interval);
-  }, [isRunning, currentCycleId, dispatch, currentCycle?.duration]);
+  }, [isRunning, currentCycleId, dispatch]);
 
   useEffect(() => {
     if (timeRemaining === 0 && cycles.length > 0 && currentCycleId) {
@@ -62,6 +68,26 @@ const PomodoroTimer = () => {
   const handleAddCycle = () => {
     setShowCycleForm(true);
     setCycleToEdit(null);
+  };
+
+  const handleSaveChanges = () => {
+    setConfigName(currentConfig ? currentConfig.name : '');
+    setSaveDialogOpen(true);
+  };
+
+  const handleSave = (saveAsNew) => {
+    const configToSave = {
+      ...(saveAsNew ? {} : { id: currentConfigId }),
+      name: configName,
+      cycles: cycles,
+    };
+
+    if (saveAsNew) {
+      dispatch(saveConfigurationAsync(configToSave));
+    } else {
+      dispatch(updateConfiguration(configToSave));
+    }
+    setSaveDialogOpen(false);
   };
 
 
@@ -112,6 +138,29 @@ const PomodoroTimer = () => {
         open={showCycleForm}
         onClose={handleCloseCycleForm}
       />
+      <Button onClick={handleSaveChanges} sx={{ mt: 2 }}>
+        Save Changes
+      </Button>
+      <Dialog open={saveDialogOpen} onClose={() => setSaveDialogOpen(false)}>
+        <DialogTitle>Save Configuration</DialogTitle>
+        <DialogContent>
+          <TextField
+            autoFocus
+            margin="dense"
+            label="Configuration Name"
+            fullWidth
+            value={configName}
+            onChange={(e) => setConfigName(e.target.value)}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setSaveDialogOpen(false)}>Cancel</Button>
+          {currentConfig && !currentConfig.isDefault && (
+            <Button onClick={() => handleSave(false)}>Update Existing</Button>
+          )}
+          <Button onClick={() => handleSave(true)}>Save as New</Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

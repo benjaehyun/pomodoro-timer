@@ -1,29 +1,26 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { Select, MenuItem, FormControl, InputLabel, Box, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField } from '@mui/material';
-import { setConfiguration, saveCustomConfiguration } from '../features/timerSlice';
-import EditIcon from '@mui/icons-material/Edit';
+import { Select, MenuItem, FormControl, InputLabel, Box, ListSubheader } from '@mui/material';
+import { setConfiguration } from '../features/timerSlice';
+import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 
 const ConfigurationSelector = () => {
   const dispatch = useDispatch();
-  const { configurations, currentConfigId } = useSelector(state => state.timer);
-  const { isLoggedIn } = useSelector(state => state.auth);
-  const [openSaveDialog, setOpenSaveDialog] = useState(false);
-  const [newConfigName, setNewConfigName] = useState('');
+  const { configurations, currentConfigId, visibleConfigurations } = useSelector(state => state.timer);
 
   const handleChange = (event) => {
     dispatch(setConfiguration(event.target.value));
   };
 
-  const handleSaveConfiguration = () => {
-    dispatch(saveCustomConfiguration({ name: newConfigName }));
-    setOpenSaveDialog(false);
-    setNewConfigName('');
-  };
+  const currentConfig = configurations.find(config => config.id === currentConfigId);
+  const visibleConfigs = configurations.filter(config => 
+    visibleConfigurations.includes(config.id) || config.id === 'custom'
+  );
+  const isCurrentConfigVisible = visibleConfigurations.includes(currentConfigId) || currentConfigId === 'custom';
 
   return (
     <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-      <FormControl fullWidth sx={{ mr: 2 }}>
+      <FormControl fullWidth>
         <InputLabel id="configuration-select-label">Cycle Configuration</InputLabel>
         <Select
           labelId="configuration-select-label"
@@ -32,39 +29,24 @@ const ConfigurationSelector = () => {
           label="Cycle Configuration"
           onChange={handleChange}
         >
-          {configurations.map((config) => (
+          {!isCurrentConfigVisible && (
+            <MenuItem value={currentConfigId}>
+              {currentConfig.name}
+            </MenuItem>
+          )}
+          {visibleConfigs.length > 0 && (
+            <ListSubheader>Quick Access</ListSubheader>
+          )}
+          {visibleConfigs.map((config) => (
             <MenuItem key={config.id} value={config.id}>
+              {config.id === 'custom' && (
+                <AddCircleOutlineIcon fontSize="small" sx={{ mr: 1 }} />
+              )}
               {config.name}
-              {config.id === 'custom' && <EditIcon fontSize="small" sx={{ ml: 1 }} />}
             </MenuItem>
           ))}
         </Select>
       </FormControl>
-      {isLoggedIn && currentConfigId === 'custom' && (
-        <Button variant="outlined" onClick={() => setOpenSaveDialog(true)}>
-          Save Configuration
-        </Button>
-      )}
-      <Dialog open={openSaveDialog} onClose={() => setOpenSaveDialog(false)}>
-        <DialogTitle>Save Configuration</DialogTitle>
-        <DialogContent>
-          <TextField
-            autoFocus
-            margin="dense"
-            id="name"
-            label="Configuration Name"
-            type="text"
-            fullWidth
-            variant="outlined"
-            value={newConfigName}
-            onChange={(e) => setNewConfigName(e.target.value)}
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOpenSaveDialog(false)}>Cancel</Button>
-          <Button onClick={handleSaveConfiguration}>Save</Button>
-        </DialogActions>
-      </Dialog>
     </Box>
   );
 };

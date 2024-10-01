@@ -27,7 +27,7 @@ import {
 import { logout } from '../features/authSlice';
 import Auth from './Auth';
 
-const SideDrawer = () => {
+const SideDrawer = ({ onOpenConfigManager }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [authOpen, setAuthOpen] = useState(false);
   const { isLoggedIn, user } = useSelector((state) => state.auth);
@@ -78,7 +78,6 @@ const SideDrawer = () => {
         {[
           { text: 'Home', icon: <HomeIcon />, path: '/' },
           { text: 'Settings', icon: <SettingsIcon />, path: '/settings' },
-          // { text: 'Cycle Management', icon: <ListIcon />, path: '/cycles' },
         ].map((item) => (
           <ListItem 
             key={item.text} 
@@ -96,6 +95,22 @@ const SideDrawer = () => {
             <ListItemText primary={item.text} />
           </ListItem>
         ))}
+        {isLoggedIn && (
+          <ListItem 
+            button
+            onClick={() => { onOpenConfigManager(); setIsOpen(false); }}
+            sx={{ 
+              color: darkGrey,
+              width: '100%',
+              '&:hover': {
+                backgroundColor: 'rgba(0, 0, 0, 0.04)',
+              },
+            }}
+          >
+            <ListItemIcon sx={{ color: darkGrey, minWidth: '40px' }}><ListIcon /></ListItemIcon>
+            <ListItemText primary="My Configurations" />
+          </ListItem>
+        )}
       </List>
       <Divider />
       <Box sx={{ p: 2, width: '100%' }}>

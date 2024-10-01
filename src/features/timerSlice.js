@@ -1,4 +1,5 @@
-import { createSlice } from '@reduxjs/toolkit';
+import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
+import * as syncService from '../services/sync';
 
 const defaultConfigurations = [
   {
@@ -45,6 +46,30 @@ const customConfig = {
   cycles: [],
 };
 
+export const fetchConfigurations = createAsyncThunk(
+  'timer/fetchConfigurations',
+  async () => {
+    const configurations = await syncService.syncConfigurations();
+    return configurations;
+  }
+);
+
+export const saveConfigurationAsync = createAsyncThunk(
+  'timer/saveConfigurationAsync',
+  async (configuration) => {
+    const savedConfig = await syncService.saveConfiguration(configuration);
+    return savedConfig;
+  }
+);
+
+export const deleteConfigurationAsync = createAsyncThunk(
+  'timer/deleteConfigurationAsync',
+  async (id) => {
+    await syncService.deleteConfiguration(id);
+    return id;
+  }
+);
+
 const initialState = {
   isRunning: false,
   timeRemaining: 25 * 60,
@@ -52,6 +77,7 @@ const initialState = {
   currentCycleId: defaultConfigurations[0].cycles[0].id,
   configurations: [...defaultConfigurations, customConfig],
   currentConfigId: defaultConfigurations[0].id,
+  visibleConfigurations: defaultConfigurations.map(config => config.id), // IDs of configurations visible in the selector
 };
 
 const timerSlice = createSlice({
@@ -233,6 +259,47 @@ const timerSlice = createSlice({
       state.configurations.push(newConfig);
       state.currentConfigId = newConfig.id;
     },
+    toggleConfigVisibility: (state, action) => {
+      const configId = action.payload;
+      const index = state.visibleConfigurations.indexOf(configId);
+      if (index > -1) {
+        state.visibleConfigurations.splice(index, 1);
+      } else {
+        state.visibleConfigurations.push(configId);
+      }
+    },
+  },
+  extraReducers: (builder) => {
+    builder
+      .addCase(fetchConfigurations.fulfilled, (state, action) => {
+        // Merge fetched configurations with existing ones, prioritizing fetched ones
+        const mergedConfigurations = [
+          ...action.payload,
+          ...state.configurations.filter(config => 
+            !action.payload.some(fetchedConfig => fetchedConfig.id === config.id)
+          )
+        ];
+        state.configurations = mergedConfigurations;
+      })
+      .addCase(saveConfigurationAsync.fulfilled, (state, action) => {
+        const index = state.configurations.findIndex(c => c.id === action.payload.id);
+        if (index !== -1) {
+          state.configurations[index] = action.payload;
+        } else {
+          state.configurations.push(action.payload);
+        }
+      })
+      .addCase(deleteConfigurationAsync.fulfilled, (state, action) => {
+        state.configurations = state.configurations.filter(c => c.id !== action.payload);
+        state.visibleConfigurations = state.visibleConfigurations.filter(id => id !== action.payload);
+        if (state.currentConfigId === action.payload) {
+          const defaultConfig = state.configurations[0];
+          state.currentConfigId = defaultConfig.id;
+          state.cycles = [...defaultConfig.cycles];
+          state.currentCycleId = defaultConfig.cycles.length > 0 ? defaultConfig.cycles[0].id : null;
+          state.timeRemaining = defaultConfig.cycles.length > 0 ? defaultConfig.cycles[0].duration : 0;
+        }
+      });
   },
 });
 
@@ -251,7 +318,8 @@ export const {
   updateConfiguration,
   deleteConfiguration,
   updateCurrentConfigurationToCustom,
-  saveCustomConfiguration,
+  saveCustomConfiguration, 
+  toggleConfigVisibility
 } = timerSlice.actions;
 
 export default timerSlice.reducer;
