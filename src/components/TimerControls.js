@@ -8,7 +8,7 @@ const TimerControls = () => {
   const { isRunning } = useSelector((state) => state.timer);
 
   return (
-    <Box sx={{ mt: 2 }}>
+    <Box sx={{ my: 2 }}>
       {!isRunning ? (
         <Button variant="contained" color="primary" onClick={() => dispatch(startTimer())}>
           Start
