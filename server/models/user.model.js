@@ -1,5 +1,3 @@
-// server/models/user.model.js
-
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
@@ -27,7 +25,17 @@ const userSchema = new Schema({
     type: String,
     required: true,
     minlength: 3
-  }
+  },
+  quickAccessConfigurations: [{
+    type: String,
+    validate: {
+      // unique validator
+      validator: function(v) {
+        return new Set(this.quickAccessConfigurations).size === this.quickAccessConfigurations.length;
+      },
+      message: props => `Duplicate configuration ID ${props.value}`
+    }
+  }]
 }, {
   timestamps: true,
 });

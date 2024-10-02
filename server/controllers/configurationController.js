@@ -12,7 +12,8 @@ async function getConfigurations(req, res) {
     const configurations = await Configuration.find({ user: req.user.userId });
     res.status(200).json(configurations);
   } catch (error) {
-    res.status(400).json('Error: ' + error);
+    console.error('Error fetching configurations:', error);
+    res.status(500).json({ message: 'Error fetching configurations', error: error.message });
   }
 }
 
@@ -27,7 +28,8 @@ async function createConfiguration(req, res) {
     await newConfiguration.save();
     res.status(201).json(newConfiguration);
   } catch (error) {
-    res.status(400).json('Error: ' + error);
+    console.error('Error creating configuration:', error);
+    res.status(400).json({ message: 'Error creating configuration', error: error.message });
   }
 }
 
@@ -35,17 +37,22 @@ async function updateConfiguration(req, res) {
   try {
     const updatedConfiguration = await Configuration.findOneAndUpdate(
       { _id: req.params.id, user: req.user.userId },
-      { name: req.body.name, cycles: req.body.cycles },
+      { 
+        name: req.body.name, 
+        cycles: req.body.cycles,
+        lastModified: new Date()
+      },
       { new: true }
     );
     
     if (!updatedConfiguration) {
-      return res.status(404).json('Configuration not found');
+      return res.status(404).json({ message: 'Configuration not found' });
     }
     
     res.status(200).json(updatedConfiguration);
   } catch (error) {
-    res.status(400).json('Error: ' + error);
+    console.error('Error updating configuration:', error);
+    res.status(400).json({ message: 'Error updating configuration', error: error.message });
   }
 }
 
@@ -57,11 +64,12 @@ async function deleteConfiguration(req, res) {
     });
     
     if (!deletedConfiguration) {
-      return res.status(404).json('Configuration not found');
+      return res.status(404).json({ message: 'Configuration not found' });
     }
     
-    res.status(200).json('Configuration deleted successfully');
+    res.status(200).json({ message: 'Configuration deleted successfully' });
   } catch (error) {
-    res.status(400).json('Error: ' + error);
+    console.error('Error deleting configuration:', error);
+    res.status(400).json({ message: 'Error deleting configuration', error: error.message });
   }
 }

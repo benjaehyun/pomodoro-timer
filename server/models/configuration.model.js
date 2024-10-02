@@ -17,9 +17,19 @@ const ConfigurationSchema = new mongoose.Schema({
     type: String,
     required: true
   },
-  cycles: [CycleSchema]
+  cycles: [CycleSchema],
+  lastModified: {
+    type: Date,
+    default: Date.now
+  }
 }, {
   timestamps: true
+});
+
+// Update lastModified on save
+ConfigurationSchema.pre('save', function(next) {
+  this.lastModified = new Date();
+  next();
 });
 
 module.exports = mongoose.model('Configuration', ConfigurationSchema);

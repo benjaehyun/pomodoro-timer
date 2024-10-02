@@ -4,7 +4,8 @@ module.exports = function(req, res, next) {
   const token = req.header('Authorization')?.replace('Bearer ', '');
 
   if (!token) {
-    return res.status(401).json({ message: 'No token, authorization denied' });
+    console.log('Authentication failed: No token provided');
+    return res.status(401).json({ message: 'Authentication failed: No token provided' });
   }
 
   try {
@@ -12,6 +13,7 @@ module.exports = function(req, res, next) {
     req.user = decoded;
     next();
   } catch (error) {
-    res.status(401).json({ message: 'Token is not valid' });
+    console.error('Authentication failed: Invalid token', error);
+    res.status(401).json({ message: 'Authentication failed: Invalid token' });
   }
 };
