@@ -26,16 +26,10 @@ const userSchema = new Schema({
     required: true,
     minlength: 3
   },
-  quickAccessConfigurations: [{
-    type: String,
-    validate: {
-      // unique validator
-      validator: function(v) {
-        return new Set(this.quickAccessConfigurations).size === this.quickAccessConfigurations.length;
-      },
-      message: props => `Duplicate configuration ID ${props.value}`
-    }
-  }]
+  quickAccessConfigurations: {
+    type: [String],
+    default: []
+  }
 }, {
   timestamps: true,
 });

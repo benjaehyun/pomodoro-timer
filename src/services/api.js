@@ -25,6 +25,8 @@ api.interceptors.request.use((config) => {
 export const register = (userData) => api.post('/users/register', userData);
 export const login = (credentials) => api.post('/users/login', credentials);
 export const getMe = () => api.get('/users/me');
+export const updateQuickAccessConfigurations = (quickAccessConfigurations) => 
+  api.put('/users/quick-access', { quickAccessConfigurations });
 
 // configuration api
 export const getConfigurations = () => api.get('/configurations');

@@ -11,8 +11,8 @@ module.exports = {
 
 async function register(req, res) {
   try {
-    const { username, email, password, displayName } = req.body;
-    const user = new User({ username, email, password, displayName });
+    const { username, email, password, displayName, quickAccessConfigurations } = req.body;
+    const user = new User({ username, email, password, displayName, quickAccessConfigurations });
     await user.save();
     const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET);
     res.status(201).json({ 
@@ -21,7 +21,7 @@ async function register(req, res) {
         username: user.username, 
         email: user.email, 
         displayName: user.displayName,
-        quickAccessConfigurations: []
+        quickAccessConfigurations: user.quickAccessConfigurations
       }, 
       token 
     });
@@ -81,29 +81,18 @@ async function getMe(req, res) {
 
 async function updateQuickAccessConfigurations(req, res) {
   try {
-    const { quickAccessConfigurations } = req.body;
-    
-    // uniqueness check
-    if (new Set(quickAccessConfigurations).size !== quickAccessConfigurations.length) {
-      return res.status(400).json({ message: 'Duplicate configuration IDs are not allowed' });
-    }
-    
     const user = await User.findByIdAndUpdate(
       req.user.userId,
-      { quickAccessConfigurations },
+      { quickAccessConfigurations: req.body.quickAccessConfigurations },
       { new: true, runValidators: true }
     ).select('-password');
-    
+
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
-    
-    res.json(user);
+
+    res.json({ quickAccessConfigurations: user.quickAccessConfigurations });
   } catch (error) {
-    if (error.name === 'ValidationError') {
-      res.status(400).json({ message: 'Validation Error', error: error.message });
-    } else {
-      res.status(400).json({ message: 'Error updating quick access configurations', error: error.message });
-    }
+    res.status(400).json({ message: 'Error updating quick access configurations', error: error.message });
   }
 }

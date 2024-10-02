@@ -5,9 +5,9 @@ const auth = require('../middleware/auth');
 
 router.use(auth);  // All routes require authentication
 
-router.get('/', configController.getConfigurations);
-router.post('/', configController.createConfiguration);
-router.put('/:id', configController.updateConfiguration);
-router.delete('/:id', configController.deleteConfiguration);
+router.get('/', auth, configController.getConfigurations);
+router.post('/', auth, configController.createConfiguration);
+router.put('/:id', auth, configController.updateConfiguration);
+router.delete('/:id', auth, configController.deleteConfiguration);
 
 module.exports = router;

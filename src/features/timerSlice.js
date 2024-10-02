@@ -1,5 +1,6 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import * as syncService from '../services/sync';
+import * as api from '../services/api';
 
 const defaultConfigurations = [
   {
@@ -40,17 +41,28 @@ const defaultConfigurations = [
   },
 ];
 
+export const defaultQuickAccessConfigurations = defaultConfigurations.map(config => config.id);
+
 const customConfig = {
   id: 'custom',
   name: 'Custom',
   cycles: [],
 };
 
+// export const fetchConfigurations = createAsyncThunk(
+//   'timer/fetchConfigurations',
+//   async () => {
+//     const configurations = await syncService.syncConfigurations();
+//     return configurations;
+//   }
+// );
+
+// this version goes straight to api call and doesn't use sync module
 export const fetchConfigurations = createAsyncThunk(
   'timer/fetchConfigurations',
   async () => {
-    const configurations = await syncService.syncConfigurations();
-    return configurations;
+    const response = await api.getConfigurations();
+    return response.data;
   }
 );
 
@@ -70,6 +82,33 @@ export const deleteConfigurationAsync = createAsyncThunk(
   }
 );
 
+// this version goes straight to api call and does not use sync module
+// export const updateQuickAccessConfigurations = createAsyncThunk(
+//   'timer/updateQuickAccessConfigurations',
+//   async (quickAccessConfigurations) => {
+//     const response = await api.updateQuickAccessConfigurations(quickAccessConfigurations);
+//     return response.data.quickAccessConfigurations;
+//   }
+// );
+export const updateQuickAccessConfigurations = createAsyncThunk(
+  'timer/updateQuickAccessConfigurations',
+  async (quickAccessConfigurations, { rejectWithValue, getState }) => {
+    const { timer } = getState();
+    // Only make the API call if there are actual changes
+    if (JSON.stringify(quickAccessConfigurations) !== JSON.stringify(timer.visibleConfigurations)) {
+      try {
+        const response = await api.updateQuickAccessConfigurations(quickAccessConfigurations);
+        return response.data.quickAccessConfigurations;
+      } catch (error) {
+        return rejectWithValue(error.response?.data?.message || 'Failed to update quick access configurations');
+      }
+    } else {
+      // If no changes, just return the current state
+      return timer.visibleConfigurations;
+    }
+  }
+);
+
 const initialState = {
   isRunning: false,
   timeRemaining: 25 * 60,
@@ -77,7 +116,7 @@ const initialState = {
   currentCycleId: defaultConfigurations[0].cycles[0].id,
   configurations: [...defaultConfigurations, customConfig],
   currentConfigId: defaultConfigurations[0].id,
-  visibleConfigurations: defaultConfigurations.map(config => config.id), // IDs of configurations visible in the selector
+  visibleConfigurations: defaultQuickAccessConfigurations // IDs of configurations visible in the selector
 };
 
 const timerSlice = createSlice({
@@ -259,27 +298,41 @@ const timerSlice = createSlice({
       state.configurations.push(newConfig);
       state.currentConfigId = newConfig.id;
     },
-    toggleConfigVisibility: (state, action) => {
-      const configId = action.payload;
-      const index = state.visibleConfigurations.indexOf(configId);
-      if (index > -1) {
-        state.visibleConfigurations.splice(index, 1);
-      } else {
-        state.visibleConfigurations.push(configId);
-      }
+    // toggleConfigVisibility: (state, action) => {
+    //   const configId = action.payload;
+    //   const index = state.visibleConfigurations.indexOf(configId);
+    //   if (index > -1) {
+    //     state.visibleConfigurations.splice(index, 1);
+    //   } else {
+    //     state.visibleConfigurations.push(configId);
+    //   }
+    // },
+    setQuickAccessConfigurations: (state, action) => {
+      state.visibleConfigurations = action.payload;
+    },
+    resetToDefaultQuickAccess: (state) => {
+      state.visibleConfigurations = defaultQuickAccessConfigurations;
     },
   },
   extraReducers: (builder) => {
     builder
+      // .addCase(fetchConfigurations.fulfilled, (state, action) => {
+      //   // Merge fetched configurations with existing ones, prioritizing fetched ones
+      //   const mergedConfigurations = [
+      //     ...action.payload,
+      //     ...state.configurations.filter(config => 
+      //       !action.payload.some(fetchedConfig => fetchedConfig.id === config.id)
+      //     )
+      //   ];
+      //   state.configurations = mergedConfigurations;
+      // })
       .addCase(fetchConfigurations.fulfilled, (state, action) => {
-        // Merge fetched configurations with existing ones, prioritizing fetched ones
-        const mergedConfigurations = [
-          ...action.payload,
-          ...state.configurations.filter(config => 
-            !action.payload.some(fetchedConfig => fetchedConfig.id === config.id)
-          )
+        const userConfigurations = action.payload;
+        state.configurations = [
+          ...defaultConfigurations,
+          ...userConfigurations,
+          customConfig
         ];
-        state.configurations = mergedConfigurations;
       })
       .addCase(saveConfigurationAsync.fulfilled, (state, action) => {
         const index = state.configurations.findIndex(c => c.id === action.payload.id);
@@ -299,6 +352,16 @@ const timerSlice = createSlice({
           state.currentCycleId = defaultConfig.cycles.length > 0 ? defaultConfig.cycles[0].id : null;
           state.timeRemaining = defaultConfig.cycles.length > 0 ? defaultConfig.cycles[0].duration : 0;
         }
+      })
+      // .addCase(updateQuickAccessConfigurations.fulfilled, (state, action) => {
+      //   state.visibleConfigurations = action.payload;
+      // })
+      .addCase(updateQuickAccessConfigurations.fulfilled, (state, action) => {
+        state.visibleConfigurations = action.payload;
+        state.error = null;
+      })
+      .addCase(updateQuickAccessConfigurations.rejected, (state, action) => {
+        state.error = action.payload;
       });
   },
 });
@@ -319,7 +382,9 @@ export const {
   deleteConfiguration,
   updateCurrentConfigurationToCustom,
   saveCustomConfiguration, 
-  toggleConfigVisibility,
+  // toggleConfigVisibility,
+  setQuickAccessConfigurations,
+  resetToDefaultQuickAccess,
 } = timerSlice.actions;
 
 export default timerSlice.reducer;
