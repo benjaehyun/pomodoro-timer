@@ -4,7 +4,7 @@ import * as api from '../services/api';
 
 const defaultConfigurations = [
   {
-    id: 'classic-pomodoro',
+    _id: 'classic-pomodoro',
     name: 'Classic Pomodoro',
     cycles: [
       { id: 'classic-1', label: 'Focus', duration: 25 * 60, note: 'Time to concentrate!' },
@@ -18,7 +18,7 @@ const defaultConfigurations = [
     ],
   },
   {
-    id: '52-17-focus',
+    _id: '52-17-focus',
     name: '52/17 Focus',
     cycles: [
       { id: '52-17-1', label: 'Focus', duration: 52 * 60, note: 'Extended focus period.' },
@@ -30,7 +30,7 @@ const defaultConfigurations = [
     ],
   },
   {
-    id: '90-minute-focus',
+    _id: '90-minute-focus',
     name: '90-Minute Deep Focus',
     cycles: [
       { id: '90-1', label: 'Deep Focus', duration: 90 * 60, note: 'Extended deep work session.' },
@@ -41,10 +41,10 @@ const defaultConfigurations = [
   },
 ];
 
-export const defaultQuickAccessConfigurations = defaultConfigurations.map(config => config.id);
+export const defaultQuickAccessConfigurations = defaultConfigurations.map(config => config._id);
 
 const customConfig = {
-  id: 'custom',
+  _id: 'custom',
   name: 'Custom',
   cycles: [],
 };
@@ -60,25 +60,53 @@ const customConfig = {
 // this version goes straight to api call and doesn't use sync module
 export const fetchConfigurations = createAsyncThunk(
   'timer/fetchConfigurations',
-  async () => {
-    const response = await api.getConfigurations();
-    return response.data;
+  async (_, { rejectWithValue, getState }) => {
+    const { timer } = getState();
+    if (timer.configsFetched) {
+      return timer.configurations;
+    }
+    try {
+      const response = await api.getConfigurations();
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.message || 'Failed to fetch configurations');
+    }
   }
 );
 
 export const saveConfigurationAsync = createAsyncThunk(
   'timer/saveConfigurationAsync',
-  async (configuration) => {
-    const savedConfig = await syncService.saveConfiguration(configuration);
-    return savedConfig;
+  async (configuration, { rejectWithValue }) => {
+    try {
+      const response = await api.createConfiguration(configuration);
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.message || 'Failed to save configuration');
+    }
+  }
+);
+
+export const updateConfigurationAsync = createAsyncThunk(
+  'timer/updateConfigurationAsync',
+  async ({ _id, configuration }, { rejectWithValue }) => {
+    try {
+      const response = await api.updateConfiguration(_id, configuration);
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.message || 'Failed to update configuration');
+    }
   }
 );
 
 export const deleteConfigurationAsync = createAsyncThunk(
   'timer/deleteConfigurationAsync',
-  async (id) => {
-    await syncService.deleteConfiguration(id);
-    return id;
+  async (_id, { rejectWithValue }) => {
+    try {
+      await api.deleteConfiguration(_id);
+      return _id;
+    } catch (error) {
+      return rejectWithValue(error.message);
+    }
   }
 );
 
@@ -115,8 +143,10 @@ const initialState = {
   cycles: defaultConfigurations[0].cycles,
   currentCycleId: defaultConfigurations[0].cycles[0].id,
   configurations: [...defaultConfigurations, customConfig],
-  currentConfigId: defaultConfigurations[0].id,
-  visibleConfigurations: defaultQuickAccessConfigurations // IDs of configurations visible in the selector
+  currentConfigId: defaultConfigurations[0]._id,
+  visibleConfigurations: defaultQuickAccessConfigurations, // IDs of configurations visible in the selector
+  error: null,
+  configsFetched: false,
 };
 
 const timerSlice = createSlice({
@@ -154,7 +184,7 @@ const timerSlice = createSlice({
 
       // Update custom configuration
       if (state.currentConfigId === 'custom') {
-        const customConfigIndex = state.configurations.findIndex(c => c.id === 'custom');
+        const customConfigIndex = state.configurations.findIndex(c => c._id === 'custom');
         if (customConfigIndex !== -1) {
           state.configurations[customConfigIndex].cycles = [...state.cycles];
         }
@@ -191,7 +221,7 @@ const timerSlice = createSlice({
     
         // Update custom configuration
         if (state.currentConfigId === 'custom') {
-          const customConfigIndex = state.configurations.findIndex(c => c.id === 'custom');
+          const customConfigIndex = state.configurations.findIndex(c => c._id === 'custom');
           if (customConfigIndex !== -1) {
             state.configurations[customConfigIndex].cycles = [...state.cycles];
           }
@@ -202,7 +232,7 @@ const timerSlice = createSlice({
       state.cycles = action.payload;
       // Update custom configuration
       if (state.currentConfigId === 'custom') {
-        const customConfigIndex = state.configurations.findIndex(c => c.id === 'custom');
+        const customConfigIndex = state.configurations.findIndex(c => c._id === 'custom');
         if (customConfigIndex !== -1) {
           state.configurations[customConfigIndex].cycles = [...state.cycles];
         }
@@ -232,7 +262,7 @@ const timerSlice = createSlice({
     
       // Update custom configuration
       if (state.currentConfigId === 'custom') {
-        const customConfigIndex = state.configurations.findIndex(c => c.id === 'custom');
+        const customConfigIndex = state.configurations.findIndex(c => c._id === 'custom');
         if (customConfigIndex !== -1) {
           state.configurations[customConfigIndex].cycles = [...state.cycles];
         }
@@ -243,9 +273,9 @@ const timerSlice = createSlice({
       state.timeRemaining = state.cycles.find(cycle => cycle.id === action.payload).duration;
     },
     setConfiguration: (state, action) => {
-      const config = state.configurations.find(c => c.id === action.payload);
+      const config = state.configurations.find(c => c._id === action.payload);
       if (config) {
-        state.currentConfigId = config.id;
+        state.currentConfigId = config._id;
         state.cycles = [...config.cycles];
         state.currentCycleId = config.cycles.length > 0 ? config.cycles[0].id : null;
         state.timeRemaining = config.cycles.length > 0 ? config.cycles[0].duration : 0;
@@ -256,10 +286,10 @@ const timerSlice = createSlice({
       state.configurations.push(action.payload);
     },
     updateConfiguration: (state, action) => {
-      const index = state.configurations.findIndex(c => c.id === action.payload.id);
+      const index = state.configurations.findIndex(c => c._id === action.payload._id);
       if (index !== -1) {
         state.configurations[index] = action.payload;
-        if (state.currentConfigId === action.payload.id) {
+        if (state.currentConfigId === action.payload._id) {
           state.cycles = [...action.payload.cycles];
           state.currentCycleId = action.payload.cycles.length > 0 ? action.payload.cycles[0].id : null;
           state.timeRemaining = action.payload.cycles.length > 0 ? action.payload.cycles[0].duration : 0;
@@ -267,10 +297,10 @@ const timerSlice = createSlice({
       }
     },
     deleteConfiguration: (state, action) => {
-      state.configurations = state.configurations.filter(c => c.id !== action.payload);
+      state.configurations = state.configurations.filter(c => c._id !== action.payload);
       if (state.currentConfigId === action.payload) {
         const defaultConfig = state.configurations[0];
-        state.currentConfigId = defaultConfig.id;
+        state.currentConfigId = defaultConfig._id;
         state.cycles = [...defaultConfig.cycles];
         state.currentCycleId = defaultConfig.cycles.length > 0 ? defaultConfig.cycles[0].id : null;
         state.timeRemaining = defaultConfig.cycles.length > 0 ? defaultConfig.cycles[0].duration : 0;
@@ -278,12 +308,12 @@ const timerSlice = createSlice({
     },
     updateCurrentConfigurationToCustom: (state) => {
       if (state.currentConfigId !== 'custom') {
-        const customConfig = state.configurations.find(c => c.id === 'custom');
+        const customConfig = state.configurations.find(c => c._id === 'custom');
         customConfig.cycles = [...state.cycles];
         state.currentConfigId = 'custom';
       }
       // Always update the custom configuration in the configurations array
-      const customConfigIndex = state.configurations.findIndex(c => c.id === 'custom');
+      const customConfigIndex = state.configurations.findIndex(c => c._id === 'custom');
       if (customConfigIndex !== -1) {
         state.configurations[customConfigIndex].cycles = [...state.cycles];
       }
@@ -291,12 +321,12 @@ const timerSlice = createSlice({
     saveCustomConfiguration: (state, action) => {
       const { name } = action.payload;
       const newConfig = {
-        id: `custom-${Date.now()}`,
+        _id: `custom-${Date.now()}`,
         name,
         cycles: [...state.cycles],
       };
       state.configurations.push(newConfig);
-      state.currentConfigId = newConfig.id;
+      state.currentConfigId = newConfig._id;
     },
     // toggleConfigVisibility: (state, action) => {
     //   const configId = action.payload;
@@ -312,6 +342,16 @@ const timerSlice = createSlice({
     },
     resetToDefaultQuickAccess: (state) => {
       state.visibleConfigurations = defaultQuickAccessConfigurations;
+    },
+    clearError: (state) => {
+      state.error = null;
+    },
+    resetTimerState: (state) => {
+      Object.assign(state, {
+        ...initialState,
+        configurations: [...defaultConfigurations, customConfig],
+        visibleConfigurations: defaultQuickAccessConfigurations,
+      });
     },
   },
   extraReducers: (builder) => {
@@ -333,25 +373,49 @@ const timerSlice = createSlice({
           ...userConfigurations,
           customConfig
         ];
+        state.configsFetched = true;
+        state.error = null;
       })
+      .addCase(fetchConfigurations.rejected, (state, action) => {
+        state.error = action.payload;
+        state.configsFetched = false;
+      })
+      // .addCase(saveConfigurationAsync.fulfilled, (state, action) => {
+      //   const index = state.configurations.findIndex(c => c.id === action.payload.id);
+      //   if (index !== -1) {
+      //     state.configurations[index] = action.payload;
+      //   } else {
+      //     state.configurations.push(action.payload);
+      //   }
+      // })
       .addCase(saveConfigurationAsync.fulfilled, (state, action) => {
-        const index = state.configurations.findIndex(c => c.id === action.payload.id);
-        if (index !== -1) {
-          state.configurations[index] = action.payload;
-        } else {
-          state.configurations.push(action.payload);
-        }
+        state.configurations.push(action.payload);
+        state.currentConfigId = action.payload._id;
+        state.error = null;
+      })
+      .addCase(saveConfigurationAsync.rejected, (state, action) => {
+        state.error = action.payload;
       })
       .addCase(deleteConfigurationAsync.fulfilled, (state, action) => {
-        state.configurations = state.configurations.filter(c => c.id !== action.payload);
+        state.configurations = state.configurations.filter(c => c._id !== action.payload);
         state.visibleConfigurations = state.visibleConfigurations.filter(id => id !== action.payload);
         if (state.currentConfigId === action.payload) {
           const defaultConfig = state.configurations[0];
-          state.currentConfigId = defaultConfig.id;
+          state.currentConfigId = defaultConfig._id;
           state.cycles = [...defaultConfig.cycles];
           state.currentCycleId = defaultConfig.cycles.length > 0 ? defaultConfig.cycles[0].id : null;
           state.timeRemaining = defaultConfig.cycles.length > 0 ? defaultConfig.cycles[0].duration : 0;
         }
+      })
+      .addCase(updateConfigurationAsync.fulfilled, (state, action) => {
+        const index = state.configurations.findIndex(c => c._id === action.payload._id);
+        if (index !== -1) {
+          state.configurations[index] = action.payload;
+        }
+        state.error = null;
+      })
+      .addCase(updateConfigurationAsync.rejected, (state, action) => {
+        state.error = action.payload;
       })
       // .addCase(updateQuickAccessConfigurations.fulfilled, (state, action) => {
       //   state.visibleConfigurations = action.payload;
@@ -385,6 +449,8 @@ export const {
   // toggleConfigVisibility,
   setQuickAccessConfigurations,
   resetToDefaultQuickAccess,
+  clearError,
+  resetTimerState
 } = timerSlice.actions;
 
 export default timerSlice.reducer;

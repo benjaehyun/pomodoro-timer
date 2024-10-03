@@ -9,7 +9,7 @@ api.interceptors.response.use(
   response => response,
   error => {
     console.error('API Error:', error.response);
-    return Promise.reject(error);
+    return Promise.reject(error.response?.data || { message: 'An unexpected error occurred' });
   }
 );
 
@@ -31,7 +31,7 @@ export const updateQuickAccessConfigurations = (quickAccessConfigurations) =>
 // configuration api
 export const getConfigurations = () => api.get('/configurations');
 export const createConfiguration = (configData) => api.post('/configurations', configData);
-export const updateConfiguration = (id, configData) => api.put(`/configurations/${id}`, configData);
-export const deleteConfiguration = (id) => api.delete(`/configurations/${id}`);
+export const updateConfiguration = (_id, configData) => api.put(`/configurations/${_id}`, configData);
+export const deleteConfiguration = (_id) => api.delete(`/configurations/${_id}`);
 
 export default api;

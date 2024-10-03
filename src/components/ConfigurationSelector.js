@@ -12,9 +12,9 @@ const ConfigurationSelector = () => {
     dispatch(setConfiguration(event.target.value));
   };
 
-  const currentConfig = configurations.find(config => config.id === currentConfigId);
+  const currentConfig = configurations.find(config => config._id === currentConfigId);
   const visibleConfigs = configurations.filter(config => 
-    visibleConfigurations.includes(config.id) || config.id === 'custom'
+    visibleConfigurations.includes(config._id) || config._id === 'custom'
   );
   const isCurrentConfigVisible = visibleConfigurations.includes(currentConfigId) || currentConfigId === 'custom';
 
@@ -30,7 +30,8 @@ const ConfigurationSelector = () => {
           onChange={handleChange}
         >
           {!isCurrentConfigVisible && (
-            <MenuItem value={currentConfigId}>
+            <MenuItem value={currentConfig._id}>
+            {/* <MenuItem value={currentConfigId}> */}
               {currentConfig.name}
             </MenuItem>
           )}
@@ -38,8 +39,8 @@ const ConfigurationSelector = () => {
             <ListSubheader>Quick Access</ListSubheader>
           )}
           {visibleConfigs.map((config) => (
-            <MenuItem key={config.id} value={config.id}>
-              {config.id === 'custom' && (
+            <MenuItem key={config._id} value={config._id}>
+              {config._id === 'custom' && (
                 <AddCircleOutlineIcon fontSize="small" sx={{ mr: 1 }} />
               )}
               {config.name}

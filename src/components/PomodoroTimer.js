@@ -2,11 +2,11 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { 
   Box, Typography, Fab, Paper, Accordion, AccordionSummary, AccordionDetails, 
-  Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField 
+  Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Snackbar
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import { tickTimer, setCurrentCycle, updateConfiguration, saveConfigurationAsync } from '../features/timerSlice';
+import { tickTimer, setCurrentCycle, updateConfiguration, saveConfigurationAsync, updateConfigurationAsync, clearError } from '../features/timerSlice';
 import TimerDisplay from './TimerDisplay';
 import TimerControls from './TimerControls';
 import DraggableCycleList from './DraggableCycleList';
@@ -16,14 +16,14 @@ import ConfigurationSelector from './ConfigurationSelector';
 
 const PomodoroTimer = () => {
   const dispatch = useDispatch();
-  const { isRunning, timeRemaining, cycles, currentCycleId, currentConfigId, configurations } = useSelector((state) => state.timer);
+  const { isRunning, timeRemaining, cycles, currentCycleId, currentConfigId, configurations, error } = useSelector((state) => state.timer);
   const audioRef = useRef(new Audio('/audio/water-droplet.mp3'));
   const [showCycleForm, setShowCycleForm] = useState(false);
   const [cycleToEdit, setCycleToEdit] = useState(null);
   const [isListExpanded, setIsListExpanded] = useState(true);
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [configName, setConfigName] = useState('');
-  const currentConfig = configurations.find(config => config.id === currentConfigId);
+  const currentConfig = configurations.find(config => config._id === currentConfigId);
   const currentCycle = cycles.find(cycle => cycle.id === currentCycleId);
 
   useEffect(() => {
@@ -77,7 +77,7 @@ const PomodoroTimer = () => {
 
   const handleSave = (saveAsNew) => {
     const configToSave = {
-      ...(saveAsNew ? {} : { id: currentConfigId }),
+      ...(saveAsNew ? {} : { _id: currentConfigId }), //currentConfig._id
       name: configName,
       cycles: cycles,
     };
@@ -86,10 +86,14 @@ const PomodoroTimer = () => {
       dispatch(saveConfigurationAsync(configToSave));
     } else {
       dispatch(updateConfiguration(configToSave));
+      dispatch(updateConfigurationAsync({ _id: currentConfig._id, configuration: configToSave }));
     }
     setSaveDialogOpen(false);
   };
 
+  const handleCloseSnackbar = () => {
+    dispatch(clearError());
+  };
 
   return (
     <Box sx={{ textAlign: 'center', mt: 4, position: 'relative', minHeight: '100vh' }}>
@@ -161,6 +165,12 @@ const PomodoroTimer = () => {
           <Button onClick={() => handleSave(true)}>Save as New</Button>
         </DialogActions>
       </Dialog>
+      <Snackbar
+        open={!!error}
+        autoHideDuration={6000}
+        onClose={handleCloseSnackbar}
+        message={error}
+      />
     </Box>
   );
 };

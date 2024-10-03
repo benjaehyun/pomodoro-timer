@@ -19,10 +19,16 @@ async function getConfigurations(req, res) {
 
 async function createConfiguration(req, res) {
   try {
+    const { name, cycles } = req.body;
+    
+    if (!name || !cycles || !Array.isArray(cycles) || cycles.length === 0) {
+      return res.status(400).json({ message: 'Invalid configuration data' });
+    }
+
     const newConfiguration = new Configuration({
       user: req.user.userId,
-      name: req.body.name,
-      cycles: req.body.cycles
+      name,
+      cycles, 
     });
     
     await newConfiguration.save();
@@ -33,16 +39,19 @@ async function createConfiguration(req, res) {
   }
 }
 
+
 async function updateConfiguration(req, res) {
   try {
+    const { name, cycles } = req.body;
+    
+    if (!name || !cycles || !Array.isArray(cycles) || cycles.length === 0) {
+      return res.status(400).json({ message: 'Invalid configuration data' });
+    }
+
     const updatedConfiguration = await Configuration.findOneAndUpdate(
       { _id: req.params.id, user: req.user.userId },
-      { 
-        name: req.body.name, 
-        cycles: req.body.cycles,
-        lastModified: new Date()
-      },
-      { new: true }
+      { name, cycles, lastModified: new Date() },
+      { new: true, runValidators: true }
     );
     
     if (!updatedConfiguration) {
@@ -67,7 +76,7 @@ async function deleteConfiguration(req, res) {
       return res.status(404).json({ message: 'Configuration not found' });
     }
     
-    res.status(200).json({ message: 'Configuration deleted successfully' });
+    res.status(200).json({ message: 'Configuration deleted successfully', id: req.params.id });
   } catch (error) {
     console.error('Error deleting configuration:', error);
     res.status(400).json({ message: 'Error deleting configuration', error: error.message });

@@ -7,8 +7,9 @@ import Settings from './pages/Settings';
 import Profile from './pages/Profile';
 import ProtectedRoute from './components/ProtectedRoute';
 import LoadingOverlay from './components/LoadingOverlay';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { checkAndFetchUserData } from './features/authSlice';
+import { fetchConfigurations } from './features/timerSlice';
 
 
 const theme = createTheme({
@@ -17,6 +18,7 @@ const theme = createTheme({
 
 function App() {
   const dispatch = useDispatch();
+  const { isLoggedIn } = useSelector(state => state.auth);
 
   useEffect(() => {
     const requestPermission = async () => {
@@ -33,6 +35,12 @@ function App() {
   useEffect(() => {
     dispatch(checkAndFetchUserData());
   }, [dispatch]);
+
+  useEffect(() => {
+    if (isLoggedIn) {
+      dispatch(fetchConfigurations());
+    }
+  }, [isLoggedIn, dispatch]);
 
   return (
     <ThemeProvider theme={theme}>

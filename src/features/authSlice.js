@@ -1,6 +1,6 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import * as api from '../services/api';
-import { fetchConfigurations, setQuickAccessConfigurations, resetToDefaultQuickAccess, defaultQuickAccessConfigurations } from './timerSlice';
+import { fetchConfigurations, setQuickAccessConfigurations, resetTimerState, defaultQuickAccessConfigurations } from './timerSlice';
 
 
 export const register = createAsyncThunk(
@@ -52,7 +52,7 @@ export const login = createAsyncThunk(
 export const logout = createAsyncThunk('auth/logout', async (_, { dispatch }) => {
   localStorage.removeItem('user');
   localStorage.removeItem('token');
-  dispatch(resetToDefaultQuickAccess());
+  dispatch(resetTimerState());
 });
 
 // export const fetchUserData = createAsyncThunk(
