@@ -1,8 +1,9 @@
 import React from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { Select, MenuItem, FormControl, InputLabel, Box, ListSubheader } from '@mui/material';
-import { setConfiguration } from '../features/timerSlice';
+import { Select, MenuItem, FormControl, InputLabel, Box, ListSubheader, IconButton, Tooltip, Typography } from '@mui/material';
+import { setConfiguration, resetCustomConfiguration } from '../features/timerSlice';
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
+import RestartAlt from '@mui/icons-material/RestartAlt';
 
 const ConfigurationSelector = () => {
   const dispatch = useDispatch();
@@ -12,6 +13,11 @@ const ConfigurationSelector = () => {
     dispatch(setConfiguration(event.target.value));
   };
 
+  const handleResetConfiguration = () => {
+    dispatch(resetCustomConfiguration());
+    dispatch(setConfiguration('custom'));
+  };
+
   const currentConfig = configurations.find(config => config._id === currentConfigId);
   const visibleConfigs = configurations.filter(config => 
     visibleConfigurations.includes(config._id) || config._id === 'custom'
@@ -19,7 +25,7 @@ const ConfigurationSelector = () => {
   const isCurrentConfigVisible = visibleConfigurations.includes(currentConfigId) || currentConfigId === 'custom';
 
   return (
-    <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+    <Box sx={{ display: 'flex', alignItems: 'stretch', mb: 2 }}>
       <FormControl fullWidth>
         <InputLabel id="configuration-select-label">Cycle Configuration</InputLabel>
         <Select
@@ -31,7 +37,6 @@ const ConfigurationSelector = () => {
         >
           {!isCurrentConfigVisible && (
             <MenuItem value={currentConfig._id}>
-            {/* <MenuItem value={currentConfigId}> */}
               {currentConfig.name}
             </MenuItem>
           )}
@@ -48,6 +53,52 @@ const ConfigurationSelector = () => {
           ))}
         </Select>
       </FormControl>
+      {currentConfig && currentConfig._id === 'custom' && (
+        <Tooltip title="Reset Custom Configuration">
+          <Box
+            onClick={handleResetConfiguration}
+            sx={{
+              ml: 1,
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'center',
+              alignItems: 'center',
+              cursor: 'pointer',
+              border: '1px solid',
+              borderColor: 'divider',
+              borderRadius: 1,
+              px: 2,
+              '&:hover': {
+                backgroundColor: 'action.hover',
+                '& .MuiSvgIcon-root': {
+                  color: 'primary.main',
+                },
+                '& .MuiTypography-root': {
+                  color: 'primary.main',
+                },
+              },
+            }}
+          >
+            <RestartAlt 
+              sx={{
+                fontSize: 24,
+                color: 'action.active',
+                transition: 'color 0.3s ease-in-out',
+              }}
+            />
+            <Typography
+              variant="caption"
+              sx={{
+                mt: 0.5,
+                color: 'text.secondary',
+                transition: 'color 0.3s ease-in-out',
+              }}
+            >
+              Reset
+            </Typography>
+          </Box>
+        </Tooltip>
+      )}
     </Box>
   );
 };

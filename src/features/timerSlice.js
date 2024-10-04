@@ -370,6 +370,7 @@ const timerSlice = createSlice({
           cycles: [],
           originalConfigId: null
         };
+        state.isRunning = false;
       }
     },
   },

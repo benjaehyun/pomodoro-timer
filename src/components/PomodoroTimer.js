@@ -56,15 +56,6 @@ const PomodoroTimer = () => {
     }
   }, [timeRemaining, cycles, currentCycleId, dispatch]);
 
-  // const handleEditCycle = (cycle) => {
-  //   setCycleToEdit(cycle);
-  //   setShowCycleForm(true);
-  // };
-
-  // const handleCloseCycleForm = () => {
-  //   setShowCycleForm(false);
-  //   setCycleToEdit(null);
-  // };
   const handleEditCycle = (cycle) => {
     setCycleToEdit(cycle);
     setShowCycleForm(true);
