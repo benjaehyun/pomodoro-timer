@@ -47,6 +47,7 @@ const customConfig = {
   _id: 'custom',
   name: 'Custom',
   cycles: [],
+  originalConfigId: null,
 };
 
 // export const fetchConfigurations = createAsyncThunk(
@@ -63,8 +64,10 @@ export const fetchConfigurations = createAsyncThunk(
   async (_, { rejectWithValue, getState }) => {
     const { timer } = getState();
     if (timer.configsFetched) {
-      return timer.configurations;
+      return timer.configurations.filter(config => !defaultQuickAccessConfigurations.includes(config._id) && config._id !== 'custom');
     }
+    //   return timer.configurations;
+    // }
     try {
       const response = await api.getConfigurations();
       return response.data;
@@ -306,15 +309,20 @@ const timerSlice = createSlice({
         state.timeRemaining = defaultConfig.cycles.length > 0 ? defaultConfig.cycles[0].duration : 0;
       }
     },
-    updateCurrentConfigurationToCustom: (state) => {
+    updateCurrentConfigurationToCustom: (state, action) => {
+      const originalConfigId = action.payload || state.currentConfigId;
       if (state.currentConfigId !== 'custom') {
         const customConfig = state.configurations.find(c => c._id === 'custom');
+        const originalConfig = state.configurations.find(c => c._id === originalConfigId);
         customConfig.cycles = [...state.cycles];
+        customConfig.originalConfigId = originalConfigId;
+        customConfig.name = `Custom: ${originalConfig.name}`;
         state.currentConfigId = 'custom';
       }
       // Always update the custom configuration in the configurations array
       const customConfigIndex = state.configurations.findIndex(c => c._id === 'custom');
       if (customConfigIndex !== -1) {
+        // 
         state.configurations[customConfigIndex].cycles = [...state.cycles];
       }
     },
@@ -352,6 +360,17 @@ const timerSlice = createSlice({
         configurations: [...defaultConfigurations, customConfig],
         visibleConfigurations: defaultQuickAccessConfigurations,
       });
+    },
+    resetCustomConfiguration: (state) => {
+      const customConfigIndex = state.configurations.findIndex(c => c._id === 'custom');
+      if (customConfigIndex !== -1) {
+        state.configurations[customConfigIndex] = {
+          _id: 'custom',
+          name: 'Custom',
+          cycles: [],
+          originalConfigId: null
+        };
+      }
     },
   },
   extraReducers: (builder) => {
@@ -412,6 +431,7 @@ const timerSlice = createSlice({
         if (index !== -1) {
           state.configurations[index] = action.payload;
         }
+        state.currentConfigId = action.payload._id;
         state.error = null;
       })
       .addCase(updateConfigurationAsync.rejected, (state, action) => {
@@ -450,7 +470,8 @@ export const {
   setQuickAccessConfigurations,
   resetToDefaultQuickAccess,
   clearError,
-  resetTimerState
+  resetTimerState,
+  resetCustomConfiguration
 } = timerSlice.actions;
 
 export default timerSlice.reducer;

@@ -6,7 +6,7 @@ import {
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import { tickTimer, setCurrentCycle, updateConfiguration, saveConfigurationAsync, updateConfigurationAsync, clearError } from '../features/timerSlice';
+import { tickTimer, setCurrentCycle, updateConfiguration, saveConfigurationAsync, updateConfigurationAsync, clearError, resetCustomConfiguration, defaultQuickAccessConfigurations } from '../features/timerSlice';
 import TimerDisplay from './TimerDisplay';
 import TimerControls from './TimerControls';
 import DraggableCycleList from './DraggableCycleList';
@@ -20,11 +20,22 @@ const PomodoroTimer = () => {
   const audioRef = useRef(new Audio('/audio/water-droplet.mp3'));
   const [showCycleForm, setShowCycleForm] = useState(false);
   const [cycleToEdit, setCycleToEdit] = useState(null);
-  const [isListExpanded, setIsListExpanded] = useState(true);
+  const [isListExpanded, setIsListExpanded] = useState(false);
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [configName, setConfigName] = useState('');
   const currentConfig = configurations.find(config => config._id === currentConfigId);
   const currentCycle = cycles.find(cycle => cycle.id === currentCycleId);
+  const [isUpdatable, setIsUpdatable] = useState(false);
+
+  useEffect(() => {
+    if (currentConfig) {
+      const isUpdatable = currentConfig._id === 'custom'
+        ? currentConfig.originalConfigId !== null && !defaultQuickAccessConfigurations.includes(currentConfig.originalConfigId)
+        : !defaultQuickAccessConfigurations.includes(currentConfig._id);
+      
+      setIsUpdatable(isUpdatable);
+    }
+  }, [currentConfig]);
 
   useEffect(() => {
     let interval;
@@ -76,6 +87,7 @@ const PomodoroTimer = () => {
   };
 
   const handleSave = (saveAsNew) => {
+    const customConfig = configurations.find( c=> c._id === 'custom'); 
     const configToSave = {
       ...(saveAsNew ? {} : { _id: currentConfigId }), //currentConfig._id
       name: configName,
@@ -85,9 +97,16 @@ const PomodoroTimer = () => {
     if (saveAsNew) {
       dispatch(saveConfigurationAsync(configToSave));
     } else {
-      dispatch(updateConfiguration(configToSave));
-      dispatch(updateConfigurationAsync({ _id: currentConfig._id, configuration: configToSave }));
+      // dispatch(updateConfiguration(configToSave));
+      // dispatch(updateConfigurationAsync({ _id: currentConfig._id, configuration: configToSave }));
+      const idToUpdate = customConfig.originalConfigId || currentConfigId;
+      if (idToUpdate && idToUpdate !== 'custom') {
+        dispatch(updateConfigurationAsync({ _id: idToUpdate, configuration: configToSave }));
+      } else {
+        console.error('No valid configuration ID to update');
+      }
     }
+    dispatch(resetCustomConfiguration());
     setSaveDialogOpen(false);
   };
 
@@ -96,7 +115,7 @@ const PomodoroTimer = () => {
   };
 
   return (
-    <Box sx={{ textAlign: 'center', mt: 4, position: 'relative', minHeight: '100vh' }}>
+    <Box sx={{ textAlign: 'center', mt: 4, position: 'relative'}}>
       <ConfigurationSelector />
       {cycles.length > 0 ? (
         <>
@@ -142,10 +161,10 @@ const PomodoroTimer = () => {
         open={showCycleForm}
         onClose={handleCloseCycleForm}
       />
-      <Button onClick={handleSaveChanges} sx={{ mt: 2 }}>
+    {cycles.length > 0 && (<Button onClick={handleSaveChanges} sx={{ mt: 2 }}>
         Save Changes
-      </Button>
-      <Dialog open={saveDialogOpen} onClose={() => setSaveDialogOpen(false)}>
+      </Button>)}
+      <Dialog open={saveDialogOpen} onClose={() => setSaveDialogOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle>Save Configuration</DialogTitle>
         <DialogContent>
           <TextField
@@ -159,8 +178,8 @@ const PomodoroTimer = () => {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setSaveDialogOpen(false)}>Cancel</Button>
-          {currentConfig && !currentConfig.isDefault && (
-            <Button onClick={() => handleSave(false)}>Update Existing</Button>
+          {currentConfig && isUpdatable && (
+            <Button onClick={() => handleSave(false)}>Update</Button>
           )}
           <Button onClick={() => handleSave(true)}>Save as New</Button>
         </DialogActions>
