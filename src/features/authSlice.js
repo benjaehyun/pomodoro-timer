@@ -1,7 +1,7 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import * as api from '../services/api';
+import * as idb from '../services/indexedDB';
 import { fetchConfigurations, setQuickAccessConfigurations, resetTimerState, defaultQuickAccessConfigurations } from './timerSlice';
-
 
 export const register = createAsyncThunk(
   'auth/register',
@@ -10,14 +10,13 @@ export const register = createAsyncThunk(
       const registrationData = {
         ...userData, 
         quickAccessConfigurations: defaultQuickAccessConfigurations
-      }; 
+      };
 
       const response = await api.register(registrationData);
-      // localStorage.setItem('user', JSON.stringify(response.data.user));
       localStorage.setItem('token', response.data.token);
+      await idb.saveUser(response.data.user);
       return response.data;
     } catch (error) {
-      // console.error('Registration error:', error.response);
       if (error.response && error.response.data) {
         if (error.response.data.errors && Array.isArray(error.response.data.errors)) {
           return rejectWithValue({ message: error.response.data.errors[0] });
@@ -30,13 +29,13 @@ export const register = createAsyncThunk(
   }
 );
 
-
 export const login = createAsyncThunk(
   'auth/login',
   async (credentials, { dispatch, rejectWithValue }) => {
     try {
       const response = await api.login(credentials);
       localStorage.setItem('token', response.data.token);
+      await idb.saveUser(response.data.user);
       
       await dispatch(fetchConfigurations());
       const userQuickAccess = response.data.user.quickAccessConfigurations;
@@ -50,45 +49,38 @@ export const login = createAsyncThunk(
 );
 
 export const logout = createAsyncThunk('auth/logout', async (_, { dispatch }) => {
-  localStorage.removeItem('user');
   localStorage.removeItem('token');
+  await idb.clearAllData();
   dispatch(resetTimerState());
 });
 
-// export const fetchUserData = createAsyncThunk(
-//   'auth/fetchUserData',
-//   async (_, { rejectWithValue }) => {
-//     try {
-//       const token = localStorage.getItem('token');
-//       if (!token) throw new Error('No token found');
-      
-//       const response = await api.getMe(token);
-//       return response.data;
-//     } catch (error) {
-//       localStorage.removeItem('token'); // Clear token on fetch failure
-//       return rejectWithValue(error.response?.data || error.message);
-//     }
-//   }
-// );
-
 export const checkAndFetchUserData = createAsyncThunk(
   'auth/checkAndFetchUserData',
-  async (_, { rejectWithValue }) => {
+  async (_, { dispatch, rejectWithValue }) => {
     const token = localStorage.getItem('token');
     if (!token) {
       return null; // No token, remain in anonymous state
     }
     try {
-      const response = await api.getMe();
-      return response.data;
+      let userData;
+      if (navigator.onLine) {
+        const response = await api.getMe();
+        userData = response.data;
+        await idb.saveUser(userData);
+
+        const userQuickAccess = userData.quickAccessConfigurations;
+        dispatch(setQuickAccessConfigurations(userQuickAccess));
+      } else {
+        userData = await idb.getUser();
+      }
+      return userData;
     } catch (error) {
       localStorage.removeItem('token'); // Clear invalid token
+      await idb.deleteUser();
       return rejectWithValue(error.response?.data || error.message);
     }
   }
 );
-
-// const user = JSON.parse(localStorage.getItem('user'));
 
 const authSlice = createSlice({
   name: 'auth',
@@ -98,13 +90,14 @@ const authSlice = createSlice({
     token: localStorage.getItem('token'),
     isLoading: false,
     error: null,
+    isOffline: !navigator.onLine,
   },
   reducers: {
-    logout: (state) => {
-      state.isLoggedIn = false;
-      state.user = null;
-      state.token = null;
-      localStorage.removeItem('token');
+    setOfflineStatus: (state, action) => {
+      state.isOffline = action.payload;
+    },
+    clearError: (state) => {
+      state.error = null;
     },
   },
   extraReducers: (builder) => {
@@ -112,22 +105,34 @@ const authSlice = createSlice({
       .addCase(register.fulfilled, (state, action) => {
         state.isLoggedIn = true;
         state.user = action.payload.user;
+        state.token = action.payload.token;
+        state.error = null;
       })
       .addCase(register.rejected, (state, action) => {
         state.isLoggedIn = false;
         state.user = null;
+        state.token = null;
+        state.error = action.payload.message;
       })
       .addCase(login.fulfilled, (state, action) => {
         state.isLoggedIn = true;
         state.user = action.payload.user;
+        state.token = action.payload.token;
+        state.error = null;
       })
       .addCase(login.rejected, (state, action) => {
         state.isLoggedIn = false;
         state.user = null;
+        state.token = null;
+        state.error = action.payload;
       })
       .addCase(logout.fulfilled, (state) => {
         state.isLoggedIn = false;
         state.user = null;
+        state.token = null;
+      })
+      .addCase(checkAndFetchUserData.pending, (state) => {
+        state.isLoading = true;
       })
       .addCase(checkAndFetchUserData.fulfilled, (state, action) => {
         state.isLoading = false;
@@ -135,7 +140,7 @@ const authSlice = createSlice({
           state.isLoggedIn = true;
           state.user = action.payload;
         }
-        // If payload is null, remain in anonymous state
+        state.error = null;
       })
       .addCase(checkAndFetchUserData.rejected, (state, action) => {
         state.isLoading = false;
@@ -145,5 +150,7 @@ const authSlice = createSlice({
       });
   },
 });
+
+export const { setOfflineStatus, clearError } = authSlice.actions;
 
 export default authSlice.reducer;

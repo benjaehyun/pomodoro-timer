@@ -184,7 +184,14 @@ const ConfigurationManager = ({ open, onClose }) => {
   );
 
   return (
-    <Dialog open={open} onClose={handleClose} fullWidth maxWidth="sm">
+    <Dialog 
+    open={open} 
+    onClose={handleClose} 
+    fullWidth 
+    maxWidth="sm" 
+    disableRestoreFocus
+    container={() => document.body}
+    >
       <DialogTitle>
         Manage Configurations
         <IconButton

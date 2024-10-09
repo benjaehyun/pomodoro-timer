@@ -1,64 +1,73 @@
 import * as api from './api';
-import * as indexedDB from './indexedDB';
+import * as idb from './indexedDB';
 
-export async function syncConfigurations() {
+export const syncConfigurations = async () => {
   try {
+    // Fetch all configurations from IndexedDB
+    const localConfigurations = await idb.getConfigurations();
+    
+    // Fetch all configurations from the server
     const response = await api.getConfigurations();
     const serverConfigurations = response.data;
 
-    const localConfigurations = await indexedDB.getConfigurations();
+    // Identify local-only configurations
+    const localOnlyConfigs = localConfigurations.filter(config => config.isLocalOnly);
 
-    await indexedDB.clearConfigurations();
-
-    for (const config of serverConfigurations) {
-      await indexedDB.saveConfiguration(config);
+    // Create new configurations on the server
+    for (const config of localOnlyConfigs) {
+      const { _id, isLocalOnly, ...configData } = config;
+      const newConfig = await api.createConfiguration(configData);
+      await idb.deleteConfiguration(_id);
+      await idb.saveConfiguration(newConfig.data);
     }
 
-    for (const localConfig of localConfigurations) {
-      if (!serverConfigurations.find(c => c.id === localConfig.id)) {
-        const newConfig = await api.createConfiguration(localConfig);
-        await indexedDB.saveConfiguration(newConfig.data);
+    // Update existing configurations
+    for (const serverConfig of serverConfigurations) {
+      const localConfig = localConfigurations.find(c => c._id === serverConfig._id && !c.isLocalOnly);
+      if (localConfig && new Date(localConfig.lastModified) > new Date(serverConfig.lastModified)) {
+        await api.updateConfiguration(serverConfig._id, localConfig);
+      } else {
+        await idb.saveConfiguration(serverConfig);
       }
     }
 
-    return serverConfigurations;
-  } catch (error) {
-    console.error('Sync error:', error);
-    throw error;
-  }
-}
+    // Fetch the final list of configurations
+    const finalResponse = await api.getConfigurations();
+    const finalConfigurations = finalResponse.data;
 
-export async function saveConfiguration(configuration) {
-  try {
-    let savedConfig;
-    if (configuration.id) {
-      const response = await api.updateConfiguration(configuration.id, configuration);
-      savedConfig = response.data;
-    } else {
-      const response = await api.createConfiguration(configuration);
-      savedConfig = response.data;
-    }
-    await indexedDB.saveConfiguration(savedConfig);
-    return savedConfig;
-  } catch (error) {
-    console.error('Save configuration error:', error);
-    if (!navigator.onLine) {
-      await indexedDB.saveConfiguration(configuration);
-      return configuration;
-    }
-    throw error;
-  }
-}
+    // Update IndexedDB with the final list
+    await Promise.all(finalConfigurations.map(config => idb.saveConfiguration(config)));
 
-export async function deleteConfiguration(id) {
-  try {
-    await api.deleteConfiguration(id);
-    await indexedDB.deleteConfiguration(id);
+    return finalConfigurations;
   } catch (error) {
-    console.error('Delete configuration error:', error);
-    if (!navigator.onLine) {
-      await indexedDB.deleteConfiguration(id);
-    }
+    console.error('Error syncing configurations:', error);
     throw error;
   }
-}
+};
+
+export const syncQuickAccessConfigurations = async () => {
+  try {
+    const user = await idb.getUser();
+    if (user && user.quickAccessConfigurations) {
+      const response = await api.updateQuickAccessConfigurations(user.quickAccessConfigurations);
+      const updatedQuickAccess = response.data.quickAccessConfigurations;
+      await idb.saveUser({ ...user, quickAccessConfigurations: updatedQuickAccess });
+      return updatedQuickAccess;
+    }
+    return null;
+  } catch (error) {
+    console.error('Error syncing quick access configurations:', error);
+    throw error;
+  }
+};
+
+export const syncAll = async () => {
+  try {
+    const configurations = await syncConfigurations();
+    const quickAccessConfigurations = await syncQuickAccessConfigurations();
+    return { configurations, quickAccessConfigurations };
+  } catch (error) {
+    console.error('Error syncing all data:', error);
+    throw error;
+  }
+};

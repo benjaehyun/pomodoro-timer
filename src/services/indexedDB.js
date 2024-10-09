@@ -1,29 +1,56 @@
 import { openDB } from 'idb';
 
-const dbPromise = openDB('PomodoroApp', 1, {
+const DB_NAME = 'PomodoroApp';
+const DB_VERSION = 1;
+const CONFIGURATIONS_STORE = 'configurations';
+const USER_STORE = 'user';
+
+const dbPromise = openDB(DB_NAME, DB_VERSION, {
   upgrade(db) {
-    if (!db.objectStoreNames.contains('configurations')) {
-      db.createObjectStore('configurations', { keyPath: 'id' });
-    }
+    // Create a store of objects
+    db.createObjectStore(CONFIGURATIONS_STORE, { keyPath: '_id' });
+    // Create another store of objects
+    db.createObjectStore(USER_STORE, { keyPath: 'id' });
   },
 });
 
+// Configuration-related functions
 export async function getConfigurations() {
-  const db = await dbPromise;
-  return db.getAll('configurations');
+  return (await dbPromise).getAll(CONFIGURATIONS_STORE);
+}
+
+export async function getConfiguration(id) {
+  return (await dbPromise).get(CONFIGURATIONS_STORE, id);
 }
 
 export async function saveConfiguration(configuration) {
-  const db = await dbPromise;
-  await db.put('configurations', configuration);
+  return (await dbPromise).put(CONFIGURATIONS_STORE, configuration);
 }
 
 export async function deleteConfiguration(id) {
-  const db = await dbPromise;
-  await db.delete('configurations', id);
+  return (await dbPromise).delete(CONFIGURATIONS_STORE, id);
 }
 
-export async function clearConfigurations() {
+// User-related functions
+export async function getUser() {
+  return (await dbPromise).get(USER_STORE, 'currentUser');
+}
+
+export async function saveUser(userData) {
+  return (await dbPromise).put(USER_STORE, { ...userData, id: 'currentUser' });
+}
+
+export async function deleteUser() {
+  return (await dbPromise).delete(USER_STORE, 'currentUser');
+}
+
+// Utility function to clear all data (useful for logging out)
+export async function clearAllData() {
   const db = await dbPromise;
-  await db.clear('configurations');
+  const tx = db.transaction([CONFIGURATIONS_STORE, USER_STORE], 'readwrite');
+  await Promise.all([
+    tx.objectStore(CONFIGURATIONS_STORE).clear(),
+    tx.objectStore(USER_STORE).clear(),
+    tx.done
+  ]);
 }

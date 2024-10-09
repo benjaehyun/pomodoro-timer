@@ -8,9 +8,9 @@ import Profile from './pages/Profile';
 import ProtectedRoute from './components/ProtectedRoute';
 import LoadingOverlay from './components/LoadingOverlay';
 import { useDispatch, useSelector } from 'react-redux';
-import { checkAndFetchUserData } from './features/authSlice';
-import { fetchConfigurations } from './features/timerSlice';
-
+import { checkAndFetchUserData, setOfflineStatus } from './features/authSlice';
+import { fetchConfigurations, setOfflineStatus as setTimerOfflineStatus } from './features/timerSlice';
+import { syncAll } from './services/sync';
 
 const theme = createTheme({
   // Customize your theme here
@@ -41,6 +41,38 @@ function App() {
       dispatch(fetchConfigurations());
     }
   }, [isLoggedIn, dispatch]);
+
+  useEffect(() => {
+    const handleOnline = async () => {
+      dispatch(setOfflineStatus(false));
+      dispatch(setTimerOfflineStatus(false));
+      if (isLoggedIn) {
+        try {
+          await syncAll();
+          dispatch(fetchConfigurations());
+        } catch (error) {
+          console.error('Error syncing data:', error);
+        }
+      }
+    };
+
+    const handleOffline = () => {
+      dispatch(setOfflineStatus(true));
+      dispatch(setTimerOfflineStatus(true));
+    };
+
+    // Set initial offline status
+    dispatch(setOfflineStatus(!navigator.onLine));
+    dispatch(setTimerOfflineStatus(!navigator.onLine));
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, [dispatch, isLoggedIn]);
 
   return (
     <ThemeProvider theme={theme}>
