@@ -13,7 +13,7 @@ import { fetchConfigurations, setOfflineStatus as setTimerOfflineStatus } from '
 import { syncAll } from './services/sync';
 
 const theme = createTheme({
-  // Customize your theme here
+  // Customize your theme
 });
 
 function App() {
