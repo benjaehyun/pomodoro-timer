@@ -10,7 +10,7 @@ export const syncConfigurations = async () => {
     const response = await api.getConfigurations();
     const serverConfigurations = response.data;
 
-    // Identify local-only configurations
+    // Identify configurations that are only in local
     const localOnlyConfigs = localConfigurations.filter(config => config.isLocalOnly);
 
     // Create new configurations on the server
