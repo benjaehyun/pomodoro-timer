@@ -26,23 +26,33 @@
         }
       },
       {
+        "src": "/manifest.json",
+        "dest": "/manifest.json",
+        "headers": {
+          "Content-Type": "application/json",
+          "Cache-Control": "public, max-age=0, must-revalidate"
+        }
+      },
+      {
         "src": "/static/(.*)",
-        "dest": "/static/$1"
+        "dest": "/static/$1",
+        "headers": {
+          "Cache-Control": "public,max-age=31536000,immutable"
+        }
       },
       {
         "src": "/favicon.ico",
         "dest": "/favicon.ico"
       },
       {
-        "src": "/manifest.json",
-        "dest": "/manifest.json"
-      },
-      {
         "handle": "filesystem"
       },
       {
         "src": "/(.*)",
-        "dest": "/index.html"
+        "dest": "/index.html",
+        "headers": {
+          "Cache-Control": "public, max-age=0, must-revalidate"
+        }
       }
     ]
   }
