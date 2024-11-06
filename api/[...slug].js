@@ -7,6 +7,14 @@ export default async function handler(req, res) {
     return;
   }
 
+  console.log('Incoming request:', {
+    method: req.method,
+    url: req.url,
+    originalUrl: req.originalUrl,
+    path: req.path
+  });
+
+
   try {
     // Modify the URL to match your Express routes
     // Remove /api prefix as it's already in your routes
