@@ -1,4 +1,3 @@
-// src/utils/notifications.js
 export const requestNotificationPermission = async () => {
     if (!('Notification' in window)) {
       console.log('This browser does not support notifications');
@@ -14,19 +13,19 @@ export const requestNotificationPermission = async () => {
     return permission === 'granted';
   };
   
-  export const sendNotification = (title, options = {}) => {
-    if (!('Notification' in window)) {
-      console.log('This browser does not support notifications');
+  export const sendNotification = async (title, options = {}) => {
+    if (!('Notification' in window) || Notification.permission !== 'granted') {
+      console.log('Notifications are not supported or permission not granted');
       return;
     }
   
-    if (Notification.permission === 'granted') {
-      new Notification(title, options);
-    } else if (Notification.permission !== 'denied') {
-      Notification.requestPermission().then(permission => {
-        if (permission === 'granted') {
-          new Notification(title, options);
-        }
+    if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+      navigator.serviceWorker.controller.postMessage({
+        type: 'SHOW_NOTIFICATION',
+        title,
+        options
       });
+    } else {
+      new Notification(title, options);
     }
   };

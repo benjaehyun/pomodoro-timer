@@ -1,6 +1,7 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import * as syncService from '../services/sync';
 import * as api from '../services/api';
+import * as idb from "../services/indexedDB"
 
 const defaultConfigurations = [
   {
@@ -50,15 +51,24 @@ const customConfig = {
   originalConfigId: null,
 };
 
+
+// this version goes straight to api call and doesn't use sync module
 // export const fetchConfigurations = createAsyncThunk(
 //   'timer/fetchConfigurations',
-//   async () => {
-//     const configurations = await syncService.syncConfigurations();
-//     return configurations;
+//   async (_, { rejectWithValue, getState }) => {
+//     const { timer } = getState();
+//     if (timer.configsFetched) {
+//       return timer.configurations.filter(config => !defaultQuickAccessConfigurations.includes(config._id) && config._id !== 'custom');
+//     }
+//     try {
+//       const response = await api.getConfigurations();
+//       return response.data;
+//     } catch (error) {
+//       return rejectWithValue(error.response?.data?.message || 'Failed to fetch configurations');
+//     }
 //   }
 // );
 
-// this version goes straight to api call and doesn't use sync module
 export const fetchConfigurations = createAsyncThunk(
   'timer/fetchConfigurations',
   async (_, { rejectWithValue, getState }) => {
@@ -66,46 +76,107 @@ export const fetchConfigurations = createAsyncThunk(
     if (timer.configsFetched) {
       return timer.configurations.filter(config => !defaultQuickAccessConfigurations.includes(config._id) && config._id !== 'custom');
     }
-    //   return timer.configurations;
-    // }
     try {
-      const response = await api.getConfigurations();
-      return response.data;
+      let configurations;
+      if (navigator.onLine) {
+        const response = await api.getConfigurations();
+        configurations = response.data;
+        await Promise.all(configurations.map(config => idb.saveConfiguration(config)));
+      } else {
+        configurations = await idb.getConfigurations();
+      }
+      return configurations;
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || 'Failed to fetch configurations');
     }
   }
 );
 
+
+// export const saveConfigurationAsync = createAsyncThunk(
+//   'timer/saveConfigurationAsync',
+//   async (configuration, { rejectWithValue }) => {
+//     try {
+//       const response = await api.createConfiguration(configuration);
+//       return response.data;
+//     } catch (error) {
+//       return rejectWithValue(error.response?.data?.message || 'Failed to save configuration');
+//     }
+//   }
+// );
 export const saveConfigurationAsync = createAsyncThunk(
   'timer/saveConfigurationAsync',
   async (configuration, { rejectWithValue }) => {
     try {
-      const response = await api.createConfiguration(configuration);
-      return response.data;
+      let savedConfig;
+      if (navigator.onLine) {
+        const response = await api.createConfiguration(configuration);
+        savedConfig = response.data;
+        await idb.saveConfiguration(savedConfig);
+      } else {
+        savedConfig = { ...configuration, _id: `local_${Date.now()}`, isLocalOnly: true };
+        await idb.saveConfiguration(savedConfig);
+      }
+      return savedConfig;
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || 'Failed to save configuration');
     }
   }
 );
 
+// export const updateConfigurationAsync = createAsyncThunk(
+//   'timer/updateConfigurationAsync',
+//   async ({ _id, configuration }, { rejectWithValue }) => {
+//     try {
+//       const response = await api.updateConfiguration(_id, configuration);
+//       return response.data;
+//     } catch (error) {
+//       return rejectWithValue(error.response?.data?.message || 'Failed to update configuration');
+//     }
+//   }
+// );
 export const updateConfigurationAsync = createAsyncThunk(
   'timer/updateConfigurationAsync',
   async ({ _id, configuration }, { rejectWithValue }) => {
     try {
-      const response = await api.updateConfiguration(_id, configuration);
-      return response.data;
+      let updatedConfig;
+      if (navigator.onLine) {
+        const response = await api.updateConfiguration(_id, configuration);
+        updatedConfig = response.data;
+        await idb.saveConfiguration(updatedConfig);
+      } else {
+        updatedConfig = { ...configuration, _id, lastModified: new Date().toISOString() };
+        if (_id.startsWith('local_')) {
+          updatedConfig.isLocalOnly = true;
+        }
+        await idb.saveConfiguration(updatedConfig);
+      }
+      return updatedConfig;
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || 'Failed to update configuration');
     }
   }
 );
 
+// export const deleteConfigurationAsync = createAsyncThunk(
+//   'timer/deleteConfigurationAsync',
+//   async (_id, { rejectWithValue }) => {
+//     try {
+//       await api.deleteConfiguration(_id);
+//       return _id;
+//     } catch (error) {
+//       return rejectWithValue(error.message);
+//     }
+//   }
+// );
 export const deleteConfigurationAsync = createAsyncThunk(
   'timer/deleteConfigurationAsync',
   async (_id, { rejectWithValue }) => {
     try {
-      await api.deleteConfiguration(_id);
+      if (navigator.onLine) {
+        await api.deleteConfiguration(_id);
+      }
+      await idb.deleteConfiguration(_id);
       return _id;
     } catch (error) {
       return rejectWithValue(error.message);
@@ -113,28 +184,44 @@ export const deleteConfigurationAsync = createAsyncThunk(
   }
 );
 
-// this version goes straight to api call and does not use sync module
 // export const updateQuickAccessConfigurations = createAsyncThunk(
 //   'timer/updateQuickAccessConfigurations',
-//   async (quickAccessConfigurations) => {
-//     const response = await api.updateQuickAccessConfigurations(quickAccessConfigurations);
-//     return response.data.quickAccessConfigurations;
+//   async (quickAccessConfigurations, { rejectWithValue, getState }) => {
+//     const { timer } = getState();
+//     // only make the API call if there are changes
+//     if (JSON.stringify(quickAccessConfigurations) !== JSON.stringify(timer.visibleConfigurations)) {
+//       try {
+//         const response = await api.updateQuickAccessConfigurations(quickAccessConfigurations);
+//         return response.data.quickAccessConfigurations;
+//       } catch (error) {
+//         return rejectWithValue(error.response?.data?.message || 'Failed to update quick access configurations');
+//       }
+//     } else {
+//       // If no changes, just return the current state
+//       return timer.visibleConfigurations;
+//     }
 //   }
 // );
 export const updateQuickAccessConfigurations = createAsyncThunk(
   'timer/updateQuickAccessConfigurations',
   async (quickAccessConfigurations, { rejectWithValue, getState }) => {
     const { timer } = getState();
-    // Only make the API call if there are actual changes
     if (JSON.stringify(quickAccessConfigurations) !== JSON.stringify(timer.visibleConfigurations)) {
       try {
-        const response = await api.updateQuickAccessConfigurations(quickAccessConfigurations);
-        return response.data.quickAccessConfigurations;
+        let updatedQuickAccess;
+        if (navigator.onLine) {
+          const response = await api.updateQuickAccessConfigurations(quickAccessConfigurations);
+          updatedQuickAccess = response.data.quickAccessConfigurations;
+        } else {
+          updatedQuickAccess = quickAccessConfigurations;
+        }
+        const user = await idb.getUser();
+        await idb.saveUser({ ...user, quickAccessConfigurations: updatedQuickAccess });
+        return updatedQuickAccess;
       } catch (error) {
         return rejectWithValue(error.response?.data?.message || 'Failed to update quick access configurations');
       }
     } else {
-      // If no changes, just return the current state
       return timer.visibleConfigurations;
     }
   }
@@ -150,6 +237,8 @@ const initialState = {
   visibleConfigurations: defaultQuickAccessConfigurations, // IDs of configurations visible in the selector
   error: null,
   configsFetched: false,
+  isOffline: !navigator.onLine,
+  syncStatus: 'synced', // 'synced', 'syncing', 'unsynced'
 };
 
 const timerSlice = createSlice({
@@ -193,19 +282,6 @@ const timerSlice = createSlice({
         }
       }
     },
-    // updateCycle: (state, action) => {
-    //   const index = state.cycles.findIndex(cycle => cycle.id === action.payload.id);
-    //   if (index !== -1) {
-    //     state.cycles[index] = action.payload;
-    //     // Update custom configuration
-    //     if (state.currentConfigId === 'custom') {
-    //       const customConfigIndex = state.configurations.findIndex(c => c.id === 'custom');
-    //       if (customConfigIndex !== -1) {
-    //         state.configurations[customConfigIndex].cycles = [...state.cycles];
-    //       }
-    //     }
-    //   }
-    // },
     updateCycle: (state, action) => {
       const index = state.cycles.findIndex(cycle => cycle.id === action.payload.id);
       if (index !== -1) {
@@ -322,7 +398,6 @@ const timerSlice = createSlice({
       // Always update the custom configuration in the configurations array
       const customConfigIndex = state.configurations.findIndex(c => c._id === 'custom');
       if (customConfigIndex !== -1) {
-        // 
         state.configurations[customConfigIndex].cycles = [...state.cycles];
       }
     },
@@ -373,19 +448,15 @@ const timerSlice = createSlice({
         state.isRunning = false;
       }
     },
+    setOfflineStatus: (state, action) => {
+      state.isOffline = action.payload;
+    },
+    setSyncStatus: (state, action) => {
+      state.syncStatus = action.payload;
+    },
   },
   extraReducers: (builder) => {
     builder
-      // .addCase(fetchConfigurations.fulfilled, (state, action) => {
-      //   // Merge fetched configurations with existing ones, prioritizing fetched ones
-      //   const mergedConfigurations = [
-      //     ...action.payload,
-      //     ...state.configurations.filter(config => 
-      //       !action.payload.some(fetchedConfig => fetchedConfig.id === config.id)
-      //     )
-      //   ];
-      //   state.configurations = mergedConfigurations;
-      // })
       .addCase(fetchConfigurations.fulfilled, (state, action) => {
         const userConfigurations = action.payload;
         state.configurations = [
@@ -395,26 +466,35 @@ const timerSlice = createSlice({
         ];
         state.configsFetched = true;
         state.error = null;
+        state.syncStatus = 'synced';
       })
       .addCase(fetchConfigurations.rejected, (state, action) => {
         state.error = action.payload;
         state.configsFetched = false;
+        state.syncStatus = 'unsynced';
       })
-      // .addCase(saveConfigurationAsync.fulfilled, (state, action) => {
-      //   const index = state.configurations.findIndex(c => c.id === action.payload.id);
-      //   if (index !== -1) {
-      //     state.configurations[index] = action.payload;
-      //   } else {
-      //     state.configurations.push(action.payload);
-      //   }
-      // })
       .addCase(saveConfigurationAsync.fulfilled, (state, action) => {
         state.configurations.push(action.payload);
         state.currentConfigId = action.payload._id;
         state.error = null;
+        state.syncStatus = state.isOffline ? 'unsynced' : 'synced';
       })
       .addCase(saveConfigurationAsync.rejected, (state, action) => {
         state.error = action.payload;
+        state.syncStatus = 'unsynced';
+      })
+      .addCase(updateConfigurationAsync.fulfilled, (state, action) => {
+        const index = state.configurations.findIndex(c => c._id === action.payload._id);
+        if (index !== -1) {
+          state.configurations[index] = action.payload;
+        }
+        state.currentConfigId = action.payload._id;
+        state.error = null;
+        state.syncStatus = state.isOffline ? 'unsynced' : 'synced';
+      })
+      .addCase(updateConfigurationAsync.rejected, (state, action) => {
+        state.error = action.payload;
+        state.syncStatus = 'unsynced';
       })
       .addCase(deleteConfigurationAsync.fulfilled, (state, action) => {
         state.configurations = state.configurations.filter(c => c._id !== action.payload);
@@ -426,27 +506,20 @@ const timerSlice = createSlice({
           state.currentCycleId = defaultConfig.cycles.length > 0 ? defaultConfig.cycles[0].id : null;
           state.timeRemaining = defaultConfig.cycles.length > 0 ? defaultConfig.cycles[0].duration : 0;
         }
+        state.syncStatus = state.isOffline ? 'unsynced' : 'synced';
       })
-      .addCase(updateConfigurationAsync.fulfilled, (state, action) => {
-        const index = state.configurations.findIndex(c => c._id === action.payload._id);
-        if (index !== -1) {
-          state.configurations[index] = action.payload;
-        }
-        state.currentConfigId = action.payload._id;
-        state.error = null;
-      })
-      .addCase(updateConfigurationAsync.rejected, (state, action) => {
+      .addCase(deleteConfigurationAsync.rejected, (state, action) => {
         state.error = action.payload;
+        state.syncStatus = 'unsynced';
       })
-      // .addCase(updateQuickAccessConfigurations.fulfilled, (state, action) => {
-      //   state.visibleConfigurations = action.payload;
-      // })
       .addCase(updateQuickAccessConfigurations.fulfilled, (state, action) => {
         state.visibleConfigurations = action.payload;
         state.error = null;
+        state.syncStatus = state.isOffline ? 'unsynced' : 'synced';
       })
       .addCase(updateQuickAccessConfigurations.rejected, (state, action) => {
         state.error = action.payload;
+        state.syncStatus = 'unsynced';
       });
   },
 });
@@ -472,7 +545,9 @@ export const {
   resetToDefaultQuickAccess,
   clearError,
   resetTimerState,
-  resetCustomConfiguration
+  resetCustomConfiguration,
+  setOfflineStatus,
+  setSyncStatus,
 } = timerSlice.actions;
 
 export default timerSlice.reducer;

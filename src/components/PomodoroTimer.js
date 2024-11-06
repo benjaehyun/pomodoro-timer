@@ -2,10 +2,14 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { 
   Box, Typography, Fab, Paper, Accordion, AccordionSummary, AccordionDetails, 
-  Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Snackbar
+  Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Snackbar, Chip, Tooltip
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import WifiOffIcon from '@mui/icons-material/WifiOff';
+import SyncIcon from '@mui/icons-material/Sync';
+import CloudDoneIcon from '@mui/icons-material/CloudDone';
+import CloudOffIcon from '@mui/icons-material/CloudOff';
 import { tickTimer, setCurrentCycle, updateConfiguration, saveConfigurationAsync, updateConfigurationAsync, clearError, resetCustomConfiguration, defaultQuickAccessConfigurations } from '../features/timerSlice';
 import TimerDisplay from './TimerDisplay';
 import TimerControls from './TimerControls';
@@ -16,7 +20,8 @@ import ConfigurationSelector from './ConfigurationSelector';
 
 const PomodoroTimer = () => {
   const dispatch = useDispatch();
-  const { isRunning, timeRemaining, cycles, currentCycleId, currentConfigId, configurations, error } = useSelector((state) => state.timer);
+  const { isRunning, timeRemaining, cycles, currentCycleId, currentConfigId, configurations, error, syncStatus } = useSelector((state) => state.timer);
+  const { isLoggedIn, isOffline } = useSelector((state) => state.auth);
   const audioRef = useRef(new Audio('/audio/water-droplet.mp3'));
   const [showCycleForm, setShowCycleForm] = useState(false);
   const [cycleToEdit, setCycleToEdit] = useState(null);
@@ -50,7 +55,10 @@ const PomodoroTimer = () => {
       const currentIndex = cycles.findIndex(cycle => cycle.id === currentCycleId);
       const nextIndex = (currentIndex + 1) % cycles.length;
       const nextCycle = cycles[nextIndex];
-      sendNotification('Pomodoro Timer', { body: `Time for ${nextCycle.label}!` });
+      sendNotification('Pomodoro Timer', { 
+        body: `Time for ${nextCycle.label}!`,
+        icon: '/favicon.ico' 
+      });
       audioRef.current.play();
       dispatch(setCurrentCycle(nextCycle.id));
     }
@@ -105,6 +113,33 @@ const PomodoroTimer = () => {
     dispatch(clearError());
   };
 
+  const getSyncStatusIcon = () => {
+    switch (syncStatus) {
+      case 'synced': return <CloudDoneIcon />;
+      case 'syncing': return <SyncIcon />;
+      case 'unsynced': return <CloudOffIcon />;
+      default: return null;
+    }
+  };
+
+  const getSyncStatusColor = () => {
+    switch (syncStatus) {
+      case 'synced': return 'success';
+      case 'syncing': return 'info';
+      case 'unsynced': return 'warning';
+      default: return 'default';
+    }
+  };
+
+  const getSyncStatusTooltip = () => {
+    switch (syncStatus) {
+      case 'synced': return 'All changes are synced';
+      case 'syncing': return 'Syncing changes...';
+      case 'unsynced': return 'Changes pending sync';
+      default: return '';
+    }
+  };
+
   return (
     <Box sx={{ textAlign: 'center', mt: 4, position: 'relative'}}>
       <ConfigurationSelector />
@@ -147,12 +182,34 @@ const PomodoroTimer = () => {
       >
         <AddIcon />
       </Fab>
+      {isLoggedIn && (
+        <Box sx={{ position: 'fixed', bottom: 16, left: 16, display: 'flex', flexDirection: 'column', gap: 1 }}>
+          {isOffline && (
+            <Tooltip title="You are offline. Changes will sync when you're back online.">
+              <Chip
+                icon={<WifiOffIcon />}
+                label="Offline"
+                color="error"
+                size="small"
+              />
+            </Tooltip>
+          )}
+          <Tooltip title={getSyncStatusTooltip()}>
+            <Chip
+              icon={getSyncStatusIcon()}
+              label={syncStatus}
+              color={getSyncStatusColor()}
+              size="small"
+            />
+          </Tooltip>
+        </Box>
+      )}
       <CycleForm
         cycleToEdit={cycleToEdit}
         open={showCycleForm}
         onClose={handleCloseCycleForm}
       />
-    {cycles.length > 0 && (<Button onClick={handleSaveChanges} sx={{ mt: 2 }}>
+        {cycles.length > 0 && (<Button onClick={handleSaveChanges} sx={{ mt: 2 }}>
         Save Changes
       </Button>)}
       <Dialog open={saveDialogOpen} onClose={() => setSaveDialogOpen(false)} maxWidth="sm" fullWidth>

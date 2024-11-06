@@ -14,6 +14,7 @@ import {
   Box,
   Typography,
   Divider,
+  Chip,
 } from '@mui/material';
 import {
   Menu as MenuIcon,
@@ -23,6 +24,10 @@ import {
   AccountCircle as AccountCircleIcon,
   ExitToApp as LogoutIcon,
   Close as CloseIcon,
+  WifiOff as WifiOffIcon,
+  Sync as SyncIcon,
+  CloudDone as CloudDoneIcon,
+  CloudOff as CloudOffIcon,
 } from '@mui/icons-material';
 import { logout } from '../features/authSlice';
 import Auth from './Auth';
@@ -30,10 +35,11 @@ import Auth from './Auth';
 const SideDrawer = ({ onOpenConfigManager }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [authOpen, setAuthOpen] = useState(false);
-  const { isLoggedIn, user } = useSelector((state) => state.auth);
+  const { isLoggedIn, user, isOffline } = useSelector((state) => state.auth);
   const dispatch = useDispatch();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const { syncStatus } = useSelector((state) => state.timer);
 
   const toggleDrawer = (open) => (event) => {
     if (event.type === 'keydown' && (event.key === 'Tab' || event.key === 'Shift')) {
@@ -45,6 +51,24 @@ const SideDrawer = ({ onOpenConfigManager }) => {
   const handleLogout = () => {
     dispatch(logout());
     setIsOpen(false);
+  };
+
+  const getSyncStatusIcon = () => {
+    switch (syncStatus) {
+      case 'synced': return <CloudDoneIcon />;
+      case 'syncing': return <SyncIcon />;
+      case 'unsynced': return <CloudOffIcon />;
+      default: return null;
+    }
+  };
+
+  const getSyncStatusColor = () => {
+    switch (syncStatus) {
+      case 'synced': return 'success';
+      case 'syncing': return 'info';
+      case 'unsynced': return 'warning';
+      default: return 'default';
+    }
   };
 
   const drawerWidth = isMobile ? '80%' : '300px';
@@ -65,7 +89,7 @@ const SideDrawer = ({ onOpenConfigManager }) => {
       onClick={toggleDrawer(false)}
       onKeyDown={toggleDrawer(false)}
     >
-      <Box sx={{ p: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <Box sx={{ pt: 2, px: 2, pb: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <Typography variant="h6" component="div" sx={{ color: darkGrey }}>
           Pomodoro Timer
         </Typography>
@@ -73,6 +97,23 @@ const SideDrawer = ({ onOpenConfigManager }) => {
           <CloseIcon />
         </IconButton>
       </Box>
+      {isLoggedIn && (<Box sx={{ pb: 2, px: 2, display: 'flex', gap: 1 }}>
+          {isOffline && (
+            <Chip
+              icon={<WifiOffIcon />}
+              label="Offline"
+              color="error"
+              size="small"
+            />
+          )}
+          <Chip
+            icon={getSyncStatusIcon()}
+            label={syncStatus}
+            color={getSyncStatusColor()}
+            size="small"
+          />
+        </Box>
+      )}
       <Divider />
       <List sx={{ flexGrow: 1, width: '100%' }}>
         {[
@@ -97,7 +138,7 @@ const SideDrawer = ({ onOpenConfigManager }) => {
         ))}
         {isLoggedIn && (
           <ListItem 
-            button
+            
             onClick={() => { onOpenConfigManager(); setIsOpen(false); }}
             sx={{ 
               color: darkGrey,
