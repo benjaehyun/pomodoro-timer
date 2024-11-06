@@ -1,5 +1,5 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import * as syncService from '../services/sync';
+// import * as syncService from '../services/sync';
 import * as api from '../services/api';
 import * as idb from "../services/indexedDB"
 

@@ -62,7 +62,7 @@ const ConfigurationManager = ({ open, onClose }) => {
 
   
 
-  const filteredConfigurations = configurations.filter(config => config._id !== 'custom');
+  // const filteredConfigurations = configurations.filter(config => config._id !== 'custom');
 
   const defaultConfigs = configurations.filter(config => defaultConfigurationIds.includes(config._id));
   const userConfigs = configurations.filter(config => !defaultConfigurationIds.includes(config._id) && config._id !== 'custom');

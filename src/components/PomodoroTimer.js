@@ -10,7 +10,7 @@ import WifiOffIcon from '@mui/icons-material/WifiOff';
 import SyncIcon from '@mui/icons-material/Sync';
 import CloudDoneIcon from '@mui/icons-material/CloudDone';
 import CloudOffIcon from '@mui/icons-material/CloudOff';
-import { tickTimer, setCurrentCycle, updateConfiguration, saveConfigurationAsync, updateConfigurationAsync, clearError, resetCustomConfiguration, defaultQuickAccessConfigurations } from '../features/timerSlice';
+import { tickTimer, setCurrentCycle, saveConfigurationAsync, updateConfigurationAsync, clearError, resetCustomConfiguration, defaultQuickAccessConfigurations } from '../features/timerSlice';
 import TimerDisplay from './TimerDisplay';
 import TimerControls from './TimerControls';
 import DraggableCycleList from './DraggableCycleList';

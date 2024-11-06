@@ -6,7 +6,6 @@ import Home from './pages/Home';
 import Settings from './pages/Settings';
 import Profile from './pages/Profile';
 import ProtectedRoute from './components/ProtectedRoute';
-import LoadingOverlay from './components/LoadingOverlay';
 import { useDispatch, useSelector } from 'react-redux';
 import { checkAndFetchUserData, setOfflineStatus } from './features/authSlice';
 import { fetchConfigurations, setOfflineStatus as setTimerOfflineStatus } from './features/timerSlice';

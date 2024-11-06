@@ -1,6 +1,6 @@
 import React from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { Select, MenuItem, FormControl, InputLabel, Box, ListSubheader, IconButton, Tooltip, Typography } from '@mui/material';
+import { Select, MenuItem, FormControl, InputLabel, Box, ListSubheader, Tooltip, Typography } from '@mui/material';
 import { setConfiguration, resetCustomConfiguration } from '../features/timerSlice';
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 import RestartAlt from '@mui/icons-material/RestartAlt';
