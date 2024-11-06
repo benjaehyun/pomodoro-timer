@@ -4,9 +4,9 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 
 // Import routes
-import userRoutes from '../server/routes/users';
-import cycleRoutes from '../server/routes/cycles';
-import configurationRoutes from '../server/routes/configurations';
+import userRoutes from './routes/users';
+import cycleRoutes from './routes/cycles';
+import configurationRoutes from './routes/configurations';
 
 dotenv.config();
 
