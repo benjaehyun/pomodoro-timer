@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 const CycleSchema = new mongoose.Schema({
   id: String,
@@ -32,4 +32,7 @@ ConfigurationSchema.pre('save', function(next) {
   next();
 });
 
-module.exports = mongoose.model('Configuration', ConfigurationSchema);
+// Handle the case where the model might already be compiled
+const Configuration = mongoose.models.Configuration || mongoose.model('Configuration', ConfigurationSchema);
+
+export default Configuration;

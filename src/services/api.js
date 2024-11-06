@@ -42,6 +42,7 @@ import * as idb from './indexedDB';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
+  withCredentials: process.env.NODE_ENV === 'production',
 });
 
 api.interceptors.request.use((config) => {
@@ -50,7 +51,32 @@ api.interceptors.request.use((config) => {
     config.headers.Authorization = `Bearer ${token}`;
   }
   return config;
+}, (error) => {
+  console.error('Request interceptor error:', error);
+  return Promise.reject(error);
 });
+
+// Add response interceptor for better error handling
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    console.error('API Error:', error);
+    
+    // Handle offline scenario
+    if (!navigator.onLine || error.message === 'Network Error') {
+      console.log('Network error detected, falling back to offline mode');
+      return Promise.reject({ offline: true, ...error });
+    }
+
+    // Handle authentication errors
+    if (error.response?.status === 401) {
+      localStorage.removeItem('token');
+      // You might want to trigger a logout action here
+    }
+
+    return Promise.reject(error.response?.data || { message: 'An unexpected error occurred' });
+  }
+);
 
 async function offlineFirst(onlineOperation, offlineOperation) {
   if (navigator.onLine) {

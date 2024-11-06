@@ -1,11 +1,21 @@
-const express = require('express');
-const router = express.Router();
-const userCtrl = require('../controllers/userController');
-const auth = require('../middleware/auth');
+import express from 'express';
+import * as userCtrl from '../controllers/userController';
+import auth from '../middleware/auth';
+import { rateLimit } from 'express-rate-limit';
 
-router.post('/register', userCtrl.register);
-router.post('/login', userCtrl.login);
+const router = express.Router();
+
+// Rate limiting for auth endpoints
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // Limit each IP to 5 requests per windowMs
+  message: 'Too many attempts, please try again later'
+});
+
+// Routes
+router.post('/register', authLimiter, userCtrl.register);
+router.post('/login', authLimiter, userCtrl.login);
 router.get('/me', auth, userCtrl.getMe);
 router.put('/quick-access', auth, userCtrl.updateQuickAccessConfigurations);
 
-module.exports = router;
+export default router;

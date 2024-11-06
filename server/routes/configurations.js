@@ -1,13 +1,15 @@
-const express = require('express');
+import express from 'express';
+import auth from '../middleware/auth';
+import * as configController from '../controllers/configurationController';
+
 const router = express.Router();
-const configController = require('../controllers/configurationController');
-const auth = require('../middleware/auth');
 
-router.use(auth);  // All routes require authentication
+// All routes require authentication
+router.use(auth);
 
-router.get('/', auth, configController.getConfigurations);
-router.post('/', auth, configController.createConfiguration);
-router.put('/:id', auth, configController.updateConfiguration);
-router.delete('/:id', auth, configController.deleteConfiguration);
+router.get('/', configController.getConfigurations);
+router.post('/', configController.createConfiguration);
+router.put('/:id', configController.updateConfiguration);
+router.delete('/:id', configController.deleteConfiguration);
 
-module.exports = router;
+export default router;

@@ -1,9 +1,7 @@
-const mongoose = require('mongoose');
-const bcrypt = require('bcryptjs');
+import mongoose from 'mongoose';
+import bcrypt from 'bcryptjs';
 
-const Schema = mongoose.Schema;
-
-const userSchema = new Schema({
+const userSchema = new mongoose.Schema({
   username: {
     type: String,
     required: true,
@@ -34,6 +32,7 @@ const userSchema = new Schema({
   timestamps: true,
 });
 
+// Password hashing middleware
 userSchema.pre('save', async function(next) {
   if (this.isModified('password')) {
     this.password = await bcrypt.hash(this.password, 8);
@@ -41,6 +40,18 @@ userSchema.pre('save', async function(next) {
   next();
 });
 
-const User = mongoose.model('User', userSchema);
+// Add method to safely return user data without sensitive fields
+userSchema.methods.toSafeObject = function() {
+  return {
+    id: this._id,
+    username: this.username,
+    email: this.email,
+    displayName: this.displayName,
+    quickAccessConfigurations: this.quickAccessConfigurations
+  };
+};
 
-module.exports = User;
+// Handle the case where the model might already be compiled
+const User = mongoose.models.User || mongoose.model('User', userSchema);
+
+export default User;

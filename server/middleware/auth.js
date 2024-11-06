@@ -1,7 +1,7 @@
-const jwt = require('jsonwebtoken');
+import jwt from 'jsonwebtoken';
 
-module.exports = function(req, res, next) {
-  const token = req.header('Authorization')?.replace('Bearer ', '');
+export default function auth(req, res, next) {
+  const token = req.headers.authorization?.replace('Bearer ', '');
 
   if (!token) {
     console.log('Authentication failed: No token provided');
@@ -10,10 +10,16 @@ module.exports = function(req, res, next) {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = decoded;
+    
+    // Enhance the user object with additional info if needed
+    req.user = {
+      ...decoded,
+      userId: decoded.userId || decoded._id // Handle different token formats
+    };
+    
     next();
   } catch (error) {
     console.error('Authentication failed: Invalid token', error);
     res.status(401).json({ message: 'Authentication failed: Invalid token' });
   }
-};
+}
