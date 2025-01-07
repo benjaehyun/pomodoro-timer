@@ -86,7 +86,7 @@ A Progressive Web Application implementing an advanced Pomodoro Timer system wit
 
 1. Clone the repository
 ```bash
-git clone https://github.com/benjaehyunlee/pomodoro-timer-pwa.git
+git clone https://github.com/benjaehyun/pomodoro-timer-pwa.git
 ```
 
 2. Install dependencies
