@@ -19,7 +19,7 @@ import {
 import {
   Menu as MenuIcon,
   Home as HomeIcon,
-  Settings as SettingsIcon,
+  // Settings as SettingsIcon,
   List as ListIcon,
   AccountCircle as AccountCircleIcon,
   ExitToApp as LogoutIcon,
