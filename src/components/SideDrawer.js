@@ -118,7 +118,7 @@ const SideDrawer = ({ onOpenConfigManager }) => {
       <List sx={{ flexGrow: 1, width: '100%' }}>
         {[
           { text: 'Home', icon: <HomeIcon />, path: '/' },
-          { text: 'Settings', icon: <SettingsIcon />, path: '/settings' },
+          // { text: 'Settings', icon: <SettingsIcon />, path: '/settings' },
         ].map((item) => (
           <ListItem 
             key={item.text} 
