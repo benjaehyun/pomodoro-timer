@@ -25,7 +25,6 @@ A Progressive Web Application implementing an advanced Pomodoro Timer system wit
 - Custom cycle labeling and note system
 - Quick access configuration system with visibility toggles
 - Real-time configuration editing with automatic state updates
-- Cross-device synchronization with conflict resolution
 
 ### Progressive Web App Features
 - Comprehensive offline functionality via Service Workers
@@ -36,8 +35,6 @@ A Progressive Web Application implementing an advanced Pomodoro Timer system wit
 
 ### Advanced Notification System
 - Service worker integration for native-like notifications
-- Custom notification templates with rich content
-- Browser-specific optimizations for Chrome, Firefox, Safari, and Edge
 - Intelligent permission handling with graceful fallbacks
 - Background notification support
 
