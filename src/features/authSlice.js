@@ -59,7 +59,7 @@ export const checkAndFetchUserData = createAsyncThunk(
   async (_, { dispatch, rejectWithValue }) => {
     const token = localStorage.getItem('token');
     if (!token) {
-      return null; // No token, remain in anonymous state
+      return null; // No token, stay anonymous 
     }
     try {
       let userData;
@@ -75,7 +75,7 @@ export const checkAndFetchUserData = createAsyncThunk(
       }
       return userData;
     } catch (error) {
-      localStorage.removeItem('token'); // Clear invalid token
+      localStorage.removeItem('token'); // clear the invalid token
       await idb.deleteUser();
       return rejectWithValue(error.response?.data || error.message);
     }

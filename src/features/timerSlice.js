@@ -93,17 +93,7 @@ export const fetchConfigurations = createAsyncThunk(
 );
 
 
-// export const saveConfigurationAsync = createAsyncThunk(
-//   'timer/saveConfigurationAsync',
-//   async (configuration, { rejectWithValue }) => {
-//     try {
-//       const response = await api.createConfiguration(configuration);
-//       return response.data;
-//     } catch (error) {
-//       return rejectWithValue(error.response?.data?.message || 'Failed to save configuration');
-//     }
-//   }
-// );
+
 export const saveConfigurationAsync = createAsyncThunk(
   'timer/saveConfigurationAsync',
   async (configuration, { rejectWithValue }) => {
@@ -124,17 +114,6 @@ export const saveConfigurationAsync = createAsyncThunk(
   }
 );
 
-// export const updateConfigurationAsync = createAsyncThunk(
-//   'timer/updateConfigurationAsync',
-//   async ({ _id, configuration }, { rejectWithValue }) => {
-//     try {
-//       const response = await api.updateConfiguration(_id, configuration);
-//       return response.data;
-//     } catch (error) {
-//       return rejectWithValue(error.response?.data?.message || 'Failed to update configuration');
-//     }
-//   }
-// );
 export const updateConfigurationAsync = createAsyncThunk(
   'timer/updateConfigurationAsync',
   async ({ _id, configuration }, { rejectWithValue }) => {
@@ -158,17 +137,7 @@ export const updateConfigurationAsync = createAsyncThunk(
   }
 );
 
-// export const deleteConfigurationAsync = createAsyncThunk(
-//   'timer/deleteConfigurationAsync',
-//   async (_id, { rejectWithValue }) => {
-//     try {
-//       await api.deleteConfiguration(_id);
-//       return _id;
-//     } catch (error) {
-//       return rejectWithValue(error.message);
-//     }
-//   }
-// );
+
 export const deleteConfigurationAsync = createAsyncThunk(
   'timer/deleteConfigurationAsync',
   async (_id, { rejectWithValue }) => {
@@ -184,28 +153,12 @@ export const deleteConfigurationAsync = createAsyncThunk(
   }
 );
 
-// export const updateQuickAccessConfigurations = createAsyncThunk(
-//   'timer/updateQuickAccessConfigurations',
-//   async (quickAccessConfigurations, { rejectWithValue, getState }) => {
-//     const { timer } = getState();
-//     // only make the API call if there are changes
-//     if (JSON.stringify(quickAccessConfigurations) !== JSON.stringify(timer.visibleConfigurations)) {
-//       try {
-//         const response = await api.updateQuickAccessConfigurations(quickAccessConfigurations);
-//         return response.data.quickAccessConfigurations;
-//       } catch (error) {
-//         return rejectWithValue(error.response?.data?.message || 'Failed to update quick access configurations');
-//       }
-//     } else {
-//       // If no changes, just return the current state
-//       return timer.visibleConfigurations;
-//     }
-//   }
-// );
+
 export const updateQuickAccessConfigurations = createAsyncThunk(
   'timer/updateQuickAccessConfigurations',
   async (quickAccessConfigurations, { rejectWithValue, getState }) => {
     const { timer } = getState();
+    // only make api call of there are changes
     if (JSON.stringify(quickAccessConfigurations) !== JSON.stringify(timer.visibleConfigurations)) {
       try {
         let updatedQuickAccess;
@@ -215,6 +168,7 @@ export const updateQuickAccessConfigurations = createAsyncThunk(
         } else {
           updatedQuickAccess = quickAccessConfigurations;
         }
+        // indexed database integration
         const user = await idb.getUser();
         await idb.saveUser({ ...user, quickAccessConfigurations: updatedQuickAccess });
         return updatedQuickAccess;

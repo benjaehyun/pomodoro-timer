@@ -22,7 +22,6 @@ connection.once('open', () => {
   console.log('MongoDB database connection established successfully');
 });
 
-// Routes will be added here
 app.use('/api/users', require('./routes/users'));
 app.use('/api/cycles', require('./routes/cycles'));
 app.use('/api/configurations', require('./routes/configurations'));
