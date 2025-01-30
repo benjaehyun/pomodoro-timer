@@ -1,10 +1,3 @@
-// import axios from 'axios';
-// import { API_BASE_URL } from '../config/apiConfig';
-
-// const api = axios.create({
-//   baseURL: API_BASE_URL,
-// });
-
 // api.interceptors.response.use(
 //   response => response,
 //   error => {
@@ -21,20 +14,7 @@
 //   return config;
 // });
 
-// // user api
-// export const register = (userData) => api.post('/users/register', userData);
-// export const login = (credentials) => api.post('/users/login', credentials);
-// export const getMe = () => api.get('/users/me');
-// export const updateQuickAccessConfigurations = (quickAccessConfigurations) => 
-//   api.put('/users/quick-access', { quickAccessConfigurations });
 
-// // configuration api
-// export const getConfigurations = () => api.get('/configurations');
-// export const createConfiguration = (configData) => api.post('/configurations', configData);
-// export const updateConfiguration = (_id, configData) => api.put(`/configurations/${_id}`, configData);
-// export const deleteConfiguration = (_id) => api.delete(`/configurations/${_id}`);
-
-// export default api;
 
 import axios from 'axios';
 import { API_BASE_URL } from '../config/apiConfig';
@@ -60,7 +40,7 @@ async function offlineFirst(onlineOperation, offlineOperation) {
     } catch (error) {
       console.error('Online operation failed:', error);
       if (error.response && error.response.status === 401) {
-        throw error; // Let the application handle authentication errors
+        throw error; // pass auth errors downstream and handle them there and maintain error msg
       }
       console.log('Falling back to offline operation');
       return offlineOperation();

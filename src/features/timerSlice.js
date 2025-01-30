@@ -52,23 +52,7 @@ const customConfig = {
 };
 
 
-// this version goes straight to api call and doesn't use sync module
-// export const fetchConfigurations = createAsyncThunk(
-//   'timer/fetchConfigurations',
-//   async (_, { rejectWithValue, getState }) => {
-//     const { timer } = getState();
-//     if (timer.configsFetched) {
-//       return timer.configurations.filter(config => !defaultQuickAccessConfigurations.includes(config._id) && config._id !== 'custom');
-//     }
-//     try {
-//       const response = await api.getConfigurations();
-//       return response.data;
-//     } catch (error) {
-//       return rejectWithValue(error.response?.data?.message || 'Failed to fetch configurations');
-//     }
-//   }
-// );
-
+// update for syncing with offline indexed database
 export const fetchConfigurations = createAsyncThunk(
   'timer/fetchConfigurations',
   async (_, { rejectWithValue, getState }) => {
@@ -188,7 +172,7 @@ const initialState = {
   currentCycleId: defaultConfigurations[0].cycles[0].id,
   configurations: [...defaultConfigurations, customConfig],
   currentConfigId: defaultConfigurations[0]._id,
-  visibleConfigurations: defaultQuickAccessConfigurations, // IDs of configurations visible in the selector
+  visibleConfigurations: defaultQuickAccessConfigurations, // IDs of configurations that are visible in the selector
   error: null,
   configsFetched: false,
   isOffline: !navigator.onLine,
@@ -242,7 +226,7 @@ const timerSlice = createSlice({
         const oldCycle = state.cycles[index];
         state.cycles[index] = action.payload;
     
-        // If this is the current cycle, update timeRemaining proportionally
+        // If this is the current cycle, update timeRemaining proportionally => will likely have to change this to be a subtractive process but need to verify edge cases with last cycles and also reordering, if the new time is shorter than previous
         if (state.currentCycleId === action.payload.id) {
           const timeElapsed = oldCycle.duration - state.timeRemaining;
           const progress = timeElapsed / oldCycle.duration;
