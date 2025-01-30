@@ -107,7 +107,7 @@ self.addEventListener('message', (event) => {
 
 // Any other custom service worker logic can go here.
 
-// Add support for push notifications
+// push notifications
 self.addEventListener('push', (event) => {
   const data = event.data.json();
   self.registration.showNotification(data.title, {
@@ -127,6 +127,6 @@ self.addEventListener('message', (event) => {
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  // You can add custom behavior here when a notification is clicked
+  // add custom behavior here when a notification is clicked
   self.clients.openWindow('/');
 });

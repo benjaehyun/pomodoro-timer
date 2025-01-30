@@ -7,14 +7,13 @@ const USER_STORE = 'user';
 
 const dbPromise = openDB(DB_NAME, DB_VERSION, {
   upgrade(db) {
-    // Create a store of objects
+    // Create a store of objects for the user and configs
     db.createObjectStore(CONFIGURATIONS_STORE, { keyPath: '_id' });
-    // Create another store of objects
     db.createObjectStore(USER_STORE, { keyPath: 'id' });
   },
 });
 
-// Configuration-related functions
+// Configuration functions
 export async function getConfigurations() {
   return (await dbPromise).getAll(CONFIGURATIONS_STORE);
 }
@@ -31,7 +30,7 @@ export async function deleteConfiguration(id) {
   return (await dbPromise).delete(CONFIGURATIONS_STORE, id);
 }
 
-// User-related functions
+// User functions
 export async function getUser() {
   return (await dbPromise).get(USER_STORE, 'currentUser');
 }
@@ -44,7 +43,7 @@ export async function deleteUser() {
   return (await dbPromise).delete(USER_STORE, 'currentUser');
 }
 
-// Utility function to clear all data (useful for logging out)
+// Utility function to clear all data - use for logging out 
 export async function clearAllData() {
   const db = await dbPromise;
   const tx = db.transaction([CONFIGURATIONS_STORE, USER_STORE], 'readwrite');

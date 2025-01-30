@@ -3,14 +3,14 @@ import * as idb from './indexedDB';
 
 export const syncConfigurations = async () => {
   try {
-    // Fetch all configurations from IndexedDB
+    // fetch all configurations from IndexedDB
     const localConfigurations = await idb.getConfigurations();
     
-    // Fetch all configurations from the server
+    // fetch all configurations from the server
     const response = await api.getConfigurations();
     const serverConfigurations = response.data;
 
-    // Identify local-only configurations
+    // find the difference between server and idb 
     const localOnlyConfigs = localConfigurations.filter(config => config.isLocalOnly);
 
     // Create new configurations on the server
@@ -31,7 +31,7 @@ export const syncConfigurations = async () => {
       }
     }
 
-    // Fetch the final list of configurations
+    // fetch the final list of configurations
     const finalResponse = await api.getConfigurations();
     const finalConfigurations = finalResponse.data;
 
