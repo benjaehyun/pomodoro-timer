@@ -96,9 +96,10 @@ npm install
 ```
 
 3. Set up environment variables
-```bash
-cp .env.example .env
-```
+MONGODB_URI=mongo-db-uri-string
+JWT_SECRET=add-a-secret-here
+REACT_APP_API_BASE_URL=serverproxy/
+NODE_ENV=development-or-production
 
 4. Start the development server
 ```bash
